@@ -19,9 +19,6 @@
           DependsOnTargets="_ResolveScopedCssOutputs;_DefineFindRazorSourceFileProperties"
           Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
 
-    <!--<Message Importance="high" Text="_RazorSdkTasksTFM - [$(_RazorSdkTasksTFM)]"/>
-    <Message Importance="high" Text="_VersionOfApplyCssScopesTask - [$(_VersionOfApplyCssScopesTask)]"/>-->
-
     <ItemGroup>
       <_Razor_without_Scope Include="%(RazorComponent.Identity)" Condition=" '%(RazorComponent.CssScope)' == '' " />
       <_Fictional_RazorCss Include="%(_Razor_without_Scope.Identity).css" Condition=" '%(_Razor_without_Scope.Identity)' != '' " />
@@ -51,7 +48,7 @@
     <MakeDir Directories="$(_RazorSourceMapFilesDir)"/>
     <WriteLinesToFile WriteOnlyWhenDifferent="true" Overwrite="true"
                       File="$(_RazorSourceMapFilesDir)%(RazorComponent.CssScope).txt"
-                      Lines="%(RazorComponent.Identity)"
+                      Lines="$(ProjectName)|%(RazorComponent.Identity)"
                       Condition=" '%(RazorComponent.CssScope)' != '' "/>
   </Target>
 

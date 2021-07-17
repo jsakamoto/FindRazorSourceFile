@@ -1,3 +1,4 @@
+const NotFound = 'NotFound';
 var elements;
 var lastHovered = null;
 var lastDetectedTarget = null;
@@ -15,9 +16,7 @@ function createElements() {
     overlay.style.bottom = '0';
     overlay.style.right = '0';
     overlay.style.zIndex = '9999';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-    //overlay.style.opacity = '0.5';
-    //overlay.style.border = 'solid 2px red';
+    overlay.style.backgroundColor = 'transparent'; //'rgba(0, 0, 0, 0.2)';
     document.body.appendChild(overlay);
     const targetMask = document.createElement('div');
     targetMask.style.position = 'absolute';
@@ -25,39 +24,33 @@ function createElements() {
     targetMask.style.left = '0';
     targetMask.style.width = '0';
     targetMask.style.height = '0';
-    //targetMask.style.zIndex = '9999';
     targetMask.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    //targetMask.style.opacity = '0.5';
     targetMask.style.outline = 'solid 2px cyan';
+    targetMask.style.display = 'none';
     overlay.appendChild(targetMask);
-    return { overlay, targetMask };
+    const sourceNameTip = document.createElement('div');
+    sourceNameTip.style.position = 'absolute';
+    sourceNameTip.style.top = '0';
+    sourceNameTip.style.left = '0';
+    sourceNameTip.style.color = '#111';
+    sourceNameTip.style.fontFamily = 'sans-serif';
+    sourceNameTip.style.fontSize = '12px';
+    sourceNameTip.style.padding = '2px 6px';
+    sourceNameTip.style.backgroundColor = '#ffc107';
+    sourceNameTip.style.boxShadow = '2px 2px 4px 0px rgb(0, 0, 0, 0.5)';
+    sourceNameTip.style.whiteSpace = 'nowrap';
+    sourceNameTip.textContent = 'HELLO WORLD';
+    sourceNameTip.style.display = 'none';
+    targetMask.appendChild(sourceNameTip);
+    return { overlay, targetMask, sourceNameTip };
 }
-function overlay_onMouseMove(ev) {
+async function overlay_onMouseMove(ev) {
     const result = detectTarget(ev);
     if (result.targetHasChanged === false)
         return;
     console.log(result);
-    if (result.target !== null && result.scope !== null) {
-        const scope = result.scope;
-        let razorSourceName = razorSourceMap[result.scope] || null;
-        if (razorSourceName !== null) {
-            displayTargetMask(result.target, razorSourceName);
-            return;
-        }
-        fetch(`_content/FindRazorSourceFile/RazorSourceMapFiles/${scope}.txt`)
-            .then(res => {
-            if (res.ok) {
-                res.text().then(text => {
-                    console.log(text);
-                    razorSourceMap[scope] = text;
-                    displayTargetMask(result.target, text);
-                });
-            }
-        });
-    }
-    else {
-        displayTargetMask(result.target, null);
-    }
+    const razorSourceName = await getRazorSourceName(result.scope);
+    displayTargetMask(result.target, razorSourceName);
 }
 function detectTarget(ev) {
     elements.overlay.style.visibility = 'hidden';
@@ -92,9 +85,30 @@ function detectTarget(ev) {
 function getScope(element) {
     return element.getAttributeNames().filter(name => name.startsWith('b-'))[0] || null;
 }
+async function getRazorSourceName(scope) {
+    if (scope === null)
+        return null;
+    let razorSourceName = razorSourceMap[scope] || null;
+    if (razorSourceName !== null)
+        return razorSourceName;
+    const res = await fetch(`_content/FindRazorSourceFile/RazorSourceMapFiles/${scope}.txt`);
+    if (res.ok) {
+        const text = await res.text();
+        console.log(text);
+        const p = text.split('|');
+        const razorSourceName = { projectName: p[0], itemName: p[1] };
+        razorSourceMap[scope] = razorSourceName;
+        return razorSourceName;
+    }
+    else {
+        razorSourceMap[scope] = NotFound;
+        return NotFound;
+    }
+}
 function displayTargetMask(target, razorSourceName) {
-    if (target === null || razorSourceName === null) {
+    if (target === null || razorSourceName === null || razorSourceName === NotFound) {
         elements.targetMask.style.display = 'none';
+        elements.sourceNameTip.style.display = 'none';
         return;
     }
     const rect = target.getBoundingClientRect();
@@ -103,4 +117,6 @@ function displayTargetMask(target, razorSourceName) {
     elements.targetMask.style.width = rect.width + 'px';
     elements.targetMask.style.height = rect.height + 'px';
     elements.targetMask.style.display = 'block';
+    elements.sourceNameTip.textContent = `${razorSourceName.projectName} | ${razorSourceName.itemName}`;
+    elements.sourceNameTip.style.display = 'block';
 }
