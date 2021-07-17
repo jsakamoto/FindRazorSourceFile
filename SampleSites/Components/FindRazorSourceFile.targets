@@ -1,0 +1,81 @@
+﻿<Project>
+
+  <PropertyGroup>
+    <EnableFindRazorSourceFile Condition=" '$(Configuration)' != 'Release' AND '$(EnableFindRazorSourceFile)' == '' " >true</EnableFindRazorSourceFile>
+  </PropertyGroup>
+
+  <Target Name="_DefineFindRazorSourceFileProperties">
+    <PropertyGroup>
+      <_RazorSourceMapFilesDir>$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
+      <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
+      <_RazorSourceMapFilesStaticWebAssetsSourceType Condition=" '$(_IsThisRazorClassLib)' != 'true' ">External</_RazorSourceMapFilesStaticWebAssetsSourceType>
+      <_VersionOfApplyCssScopesTask Condition=" '$(_RazorSdkTasksTFM)' == 'net5.0' OR '$(_RazorSdkTasksTFM)' == 'net46' ">1</_VersionOfApplyCssScopesTask>
+      <_VersionOfApplyCssScopesTask Condition=" '$(_VersionOfApplyCssScopesTask)' == '' ">2</_VersionOfApplyCssScopesTask>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_GenerateRazorSourceMapFiles"
+          BeforeTargets="AssignRazorComponentTargetPaths;AssignRazorGenerateTargetPaths"
+          DependsOnTargets="_ResolveScopedCssOutputs;_DefineFindRazorSourceFileProperties"
+          Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
+
+    <!--<Message Importance="high" Text="_RazorSdkTasksTFM - [$(_RazorSdkTasksTFM)]"/>
+    <Message Importance="high" Text="_VersionOfApplyCssScopesTask - [$(_VersionOfApplyCssScopesTask)]"/>-->
+
+    <ItemGroup>
+      <_Razor_without_Scope Include="%(RazorComponent.Identity)" Condition=" '%(RazorComponent.CssScope)' == '' " />
+      <_Fictional_RazorCss Include="%(_Razor_without_Scope.Identity).css" Condition=" '%(_Razor_without_Scope.Identity)' != '' " />
+    </ItemGroup>
+
+    <ComputeCssScope ScopedCssInput="@(_Fictional_RazorCss)" Targetname="$(TargetName)">
+      <Output TaskParameter="ScopedCss" ItemName="_Fictional_RazorCss_with_Scope" />
+    </ComputeCssScope>
+
+    <ApplyCssScopes RazorComponents="@(_Razor_without_Scope)" ScopedCss="@(_Fictional_RazorCss_with_Scope)" 
+                    Condition=" '$(_VersionOfApplyCssScopesTask)' == '1' ">
+      <Output TaskParameter="RazorComponentsWithScopes" ItemName="_Razor_with_Scope" />
+      <!--<Output TaskParameter="RazorGenerateWithScopes" ItemName="_RazorGenerateWithScopes" />-->
+    </ApplyCssScopes>
+    <ApplyCssScopes RazorComponents="@(_Razor_without_Scope)" ScopedCss="@(_Fictional_RazorCss_with_Scope)"
+                    RazorGenerate=""
+                    Condition=" '$(_VersionOfApplyCssScopesTask)' != '1' ">
+      <Output TaskParameter="RazorComponentsWithScopes" ItemName="_Razor_with_Scope" />
+      <!--<Output TaskParameter="RazorGenerateWithScopes" ItemName="_RazorGenerateWithScopes" />-->
+    </ApplyCssScopes>
+
+    <ItemGroup>
+      <RazorComponent Remove="@(_Razor_with_Scope)" />
+      <RazorComponent Include="@(_Razor_with_Scope)" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(_RazorSourceMapFilesDir)"/>
+    <WriteLinesToFile WriteOnlyWhenDifferent="true" Overwrite="true"
+                      File="$(_RazorSourceMapFilesDir)%(RazorComponent.CssScope).txt"
+                      Lines="%(RazorComponent.Identity)"
+                      Condition=" '%(RazorComponent.CssScope)' != '' "/>
+  </Target>
+
+  <Target Name="_CleanRazorSourceMapFiles" AfterTargets="Clean" DependsOnTargets="_DefineFindRazorSourceFileProperties">
+    <RemoveDir Directories="$(_RazorSourceMapFilesDir)"/>
+  </Target>
+
+  <Target Name="_DefineFindRazorSourceFileWebAssets"
+          BeforeTargets="_CreateStaticWebAssetsInputsCacheFile"
+          DependsOnTargets="_GenerateRazorSourceMapFiles;_DefineFindRazorSourceFileProperties"
+          Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
+    
+    <ItemGroup>
+      <StaticWebAsset Include="$(_RazorSourceMapFilesDir)">
+        <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
+        <SourceId>FindRazorSourceFile.RazorSourceMapFiles</SourceId>
+        <ContentRoot>$(_RazorSourceMapFilesDir)</ContentRoot>
+        <BasePath>_content/FindRazorSourceFile/RazorSourceMapFiles</BasePath>
+        <RelativePath>$(AssemblyName)</RelativePath>
+        <!--<RelativePath>%(RecursiveDir)%(FileName)%(Extension)</RelativePath>-->
+        <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+      </StaticWebAsset>
+    </ItemGroup>
+
+  </Target>
+
+</Project>
