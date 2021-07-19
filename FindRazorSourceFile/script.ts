@@ -16,10 +16,19 @@ const enum Mode {
     Locked
 }
 
+const enum RazorSourceEventNames {
+    LockIn = 'razorsource:lockin'
+}
+
+interface RazorSourceEvent extends Event {
+    razorSourceName: RazorSourceNameType;
+}
+
 var elements: UIElements;
 var lastHovered: Element | null = null;
 var lastDetectedTarget: Element | null = null;
 var lastDetectedScope: string | null = null;
+var lastDetectedRazorSource: RazorSourceName | null = null;
 const razorSourceMap: { [key: string]: RazorSourceName | undefined } = {};
 var currentMode: Mode = Mode.Inactive;
 
@@ -103,8 +112,11 @@ async function overlay_onMouseMove(ev: MouseEvent): Promise<void> {
 
 function overlay_onClick(ev: MouseEvent): void {
     if (currentMode === Mode.Active) {
-        if (lastDetectedTarget !== null && lastDetectedScope !== null) {
+        if (lastDetectedTarget !== null && lastDetectedScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
             currentMode = Mode.Locked;
+            const event = new Event(RazorSourceEventNames.LockIn, { bubbles: false, cancelable: false }) as RazorSourceEvent;
+            event.razorSourceName = lastDetectedRazorSource;
+            document.dispatchEvent(event);
         }
     }
     else if (currentMode === Mode.Locked) {
@@ -116,8 +128,8 @@ function overlay_onClick(ev: MouseEvent): void {
 async function detectTargetAndDisplayIt(ev: MouseEvent): Promise<void> {
     const result = detectTarget(ev);
     if (result.targetHasChanged === false) return;
-    const razorSourceName = await getRazorSourceName(result.scope);
-    displayTargetMask(result.target, razorSourceName);
+    lastDetectedRazorSource = await getRazorSourceName(result.scope);
+    displayTargetMask(result.target, lastDetectedRazorSource);
 }
 
 function detectTarget(ev: MouseEvent): { target: Element | null, scope: string | null, targetHasChanged: boolean } {
@@ -166,8 +178,7 @@ async function getRazorSourceName(scope: string | null): Promise<RazorSourceName
     const res = await fetch(`_content/FindRazorSourceFile/RazorSourceMapFiles/${scope}.txt`);
     if (res.ok) {
         const text = await res.text();
-        console.log(text);
-        const p = text.split('|');
+        const p = text.replace(/[\r\n]*$/ig, '').split('|');
         const razorSourceName = { projectName: p[0], itemName: p[1] };
         razorSourceMap[scope] = razorSourceName;
         return razorSourceName;

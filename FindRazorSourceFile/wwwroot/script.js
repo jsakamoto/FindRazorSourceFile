@@ -3,6 +3,7 @@ var elements;
 var lastHovered = null;
 var lastDetectedTarget = null;
 var lastDetectedScope = null;
+var lastDetectedRazorSource = null;
 const razorSourceMap = {};
 var currentMode = 0 /* Inactive */;
 export function init(name) {
@@ -77,8 +78,11 @@ async function overlay_onMouseMove(ev) {
 }
 function overlay_onClick(ev) {
     if (currentMode === 1 /* Active */) {
-        if (lastDetectedTarget !== null && lastDetectedScope !== null) {
+        if (lastDetectedTarget !== null && lastDetectedScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
             currentMode = 2 /* Locked */;
+            const event = new Event("razorsource:lockin" /* LockIn */, { bubbles: false, cancelable: false });
+            event.razorSourceName = lastDetectedRazorSource;
+            document.dispatchEvent(event);
         }
     }
     else if (currentMode === 2 /* Locked */) {
@@ -90,8 +94,8 @@ async function detectTargetAndDisplayIt(ev) {
     const result = detectTarget(ev);
     if (result.targetHasChanged === false)
         return;
-    const razorSourceName = await getRazorSourceName(result.scope);
-    displayTargetMask(result.target, razorSourceName);
+    lastDetectedRazorSource = await getRazorSourceName(result.scope);
+    displayTargetMask(result.target, lastDetectedRazorSource);
 }
 function detectTarget(ev) {
     elements.overlay.style.visibility = 'hidden';
@@ -135,8 +139,7 @@ async function getRazorSourceName(scope) {
     const res = await fetch(`_content/FindRazorSourceFile/RazorSourceMapFiles/${scope}.txt`);
     if (res.ok) {
         const text = await res.text();
-        console.log(text);
-        const p = text.split('|');
+        const p = text.replace(/[\r\n]*$/ig, '').split('|');
         const razorSourceName = { projectName: p[0], itemName: p[1] };
         razorSourceMap[scope] = razorSourceName;
         return razorSourceName;
