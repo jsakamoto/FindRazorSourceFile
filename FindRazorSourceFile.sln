@@ -17,7 +17,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleSites", "SampleSites"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FindRazorSourceFile.WebAssembly", "FindRazorSourceFile.WebAssembly\FindRazorSourceFile.WebAssembly.csproj", "{7382D485-40A8-4BB4-8CC1-0E99A862B9EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FindRazorSourceFile.Server", "FindRazorSourceFile.Server\FindRazorSourceFile.Server.csproj", "{4472B5C2-402A-4AF6-9AF8-57C3A102D0B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FindRazorSourceFile.Server", "FindRazorSourceFile.Server\FindRazorSourceFile.Server.csproj", "{4472B5C2-402A-4AF6-9AF8-57C3A102D0B2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "README", "README", "{995F2134-CBE7-4363-A4CA-77BE393A45B8}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

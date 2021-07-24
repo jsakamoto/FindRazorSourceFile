@@ -1,0 +1,11 @@
+﻿<Project>
+  <ItemGroup>
+    <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\script.js">
+      <SourceType>Package</SourceType>
+      <SourceId>FindRazorSourceFile</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/FindRazorSourceFile</BasePath>
+      <RelativePath>script.js</RelativePath>
+    </StaticWebAsset>
+  </ItemGroup>
+</Project>

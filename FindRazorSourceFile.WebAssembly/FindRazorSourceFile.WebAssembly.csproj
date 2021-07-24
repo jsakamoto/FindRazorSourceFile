@@ -8,10 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="5.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\FindRazorSourceFile\FindRazorSourceFile.csproj" />
+    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.1" />
   </ItemGroup>
 
 </Project>

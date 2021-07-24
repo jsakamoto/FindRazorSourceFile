@@ -9,10 +9,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="AngleSharp" Version="0.14.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\FindRazorSourceFile\FindRazorSourceFile.csproj" />
+    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.1" />
   </ItemGroup>
 
 </Project>

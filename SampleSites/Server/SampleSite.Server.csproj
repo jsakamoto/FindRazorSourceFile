@@ -9,6 +9,4 @@
     <ProjectReference Include="..\Components\SampleSite.Components.csproj" />
   </ItemGroup>
 
-  <Import Project="..\Components\FindRazorSourceFile.targets" />
-
 </Project>
