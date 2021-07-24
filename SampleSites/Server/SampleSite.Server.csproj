@@ -5,9 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\FindRazorSourceFile.Server\FindRazorSourceFile.Server.csproj" />
     <ProjectReference Include="..\Components\SampleSite.Components.csproj" />
   </ItemGroup>
 
-  <Import Project="..\Components\FindRazorSourceFile.targets"/>
+  <Import Project="..\Components\FindRazorSourceFile.targets" />
 
 </Project>

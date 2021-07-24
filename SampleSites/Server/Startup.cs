@@ -1,3 +1,4 @@
+using FindRazorSourceFile.Server;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -12,7 +13,7 @@ namespace SampleSite.Server
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            this.Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
@@ -32,7 +33,7 @@ namespace SampleSite.Server
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                //app.UseFindRazorSourceFile();
+                app.UseFindRazorSourceFile();
             }
             else
             {
