@@ -8,26 +8,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="5.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="5.0.1" PrivateAssets="all" />
+    <PackageReference Include="FindRazorSourceFile.WebAssembly" Version="1.0.0-preview.1.3" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\FindRazorSourceFile.WebAssembly\FindRazorSourceFile.WebAssembly.csproj" />
     <ProjectReference Include="..\Components\SampleSite.Components.csproj" />
   </ItemGroup>
-
-  <Target Name="ConfigureTrimming"
-          BeforeTargets="PrepareForILLink">
-    <Message Importance="high" Text="[PublishTrimmed] - $(PublishTrimmed)"/>
-    <Message Importance="high" Text="[TrimMode] - $(TrimMode)"/>
-    <ItemGroup>
-      <ManagedAssemblyToLink Condition="'%(Filename)' == 'FindRazorSourceFile'">
-        <IsTrimmable>true</IsTrimmable>
-        <!--<TrimMode>link</TrimMode>-->
-      </ManagedAssemblyToLink>
-      <ManagedAssemblyToLink Condition="'%(Filename)' == 'FindRazorSourceFile.WebAssembly'">
-        <IsTrimmable>true</IsTrimmable>
-        <!--<TrimMode>link</TrimMode>-->
-      </ManagedAssemblyToLink>
-    </ItemGroup>
-  </Target>
 
 </Project>
