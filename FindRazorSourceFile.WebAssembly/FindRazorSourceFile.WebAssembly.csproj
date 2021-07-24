@@ -8,25 +8,32 @@
     <Description>Enables Ctrl+Shift+F to show a source .razor file name of each rendered component on a browser window.</Description>
     <Authors>J.Sakamoto</Authors>
     <Owners>J.Sakamoto</Owners>
-    <Copyright>2021 © J.Sakamoto. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2021 J.Sakamoto, Mozilla Public License 2.0</Copyright>
     <PackageTags>blazor</PackageTags>
     <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
     <PackageReleaseNotes>(Please write the package release notes in "RELEASE NOTES.txt".)</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/jsakamoto/FindRazorSourceFile</PackageProjectUrl>
     <PackageOutputPath>..\_dist\</PackageOutputPath>
+    <PackageIcon>nupkg-icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="5.0.0" />
-    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.1" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="build\*" Pack="true" PackagePath="build/%(Filename)%(Extension)" />
+    <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
+    <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FindRazorSourceFile\FindRazorSourceFile.csproj" />
   </ItemGroup>
 
   <Target Name="PreparePackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec">
-    <ReadLinesFromFile File="../RELEASE-NOTES.txt">
+    <ReadLinesFromFile File="RELEASE-NOTES.txt">
       <Output TaskParameter="Lines" ItemName="ReleaseNoteLines" />
     </ReadLinesFromFile>
     <PropertyGroup>

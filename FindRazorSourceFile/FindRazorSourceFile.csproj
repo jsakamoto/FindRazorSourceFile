@@ -6,7 +6,7 @@
     <Description>Enables Ctrl+Shift+F to show a source .razor file name of each rendered component on a browser window.</Description>
     <Authors>J.Sakamoto</Authors>
     <Owners>J.Sakamoto</Owners>
-    <Copyright>2021 © J.Sakamoto. All rights reserved.</Copyright>
+    <Copyright>Copyright © 2021 J.Sakamoto, Mozilla Public License 2.0</Copyright>
     <PackageTags>blazor</PackageTags>
     <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
     <PackageReleaseNotes>(Please write the package release notes in "RELEASE NOTES.txt".)</PackageReleaseNotes>
