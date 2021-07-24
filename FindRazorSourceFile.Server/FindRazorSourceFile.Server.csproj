@@ -1,15 +1,43 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>nullable</WarningsAsErrors>
+    <Version>1.0.0-preview.1.3</Version>
+    <Description>Enables Ctrl+Shift+F to show a source .razor file name of each rendered component on a browser window.</Description>
+    <Authors>J.Sakamoto</Authors>
+    <Owners>J.Sakamoto</Owners>
+    <Copyright>Copyright © 2021 J.Sakamoto, Mozilla Public License 2.0</Copyright>
+    <PackageTags>blazor</PackageTags>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageReleaseNotes>(Please write the package release notes in "RELEASE NOTES.txt".)</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/jsakamoto/FindRazorSourceFile</PackageProjectUrl>
+    <PackageOutputPath>..\_dist\</PackageOutputPath>
+    <PackageIcon>nupkg-icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="AngleSharp" Version="0.14.0" />
-    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.1" />
+    <ProjectReference Include="..\FindRazorSourceFile\FindRazorSourceFile.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
+    <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <Target Name="PreparePackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec">
+    <ReadLinesFromFile File="RELEASE-NOTES.txt">
+      <Output TaskParameter="Lines" ItemName="ReleaseNoteLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <PackageReleaseNotes>@(ReleaseNoteLines, '%0a')</PackageReleaseNotes>
+      <PackageReleaseNotes>$(PackageReleaseNotes)v.0.0.0</PackageReleaseNotes>
+      <PackageReleaseNotes>$([System.Text.RegularExpressions.Regex]::Match($(PackageReleaseNotes), "^(v\.[\d\.]+.+?)v\.[\d\.]+", System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value)</PackageReleaseNotes>
+    </PropertyGroup>
+  </Target>
 
 </Project>

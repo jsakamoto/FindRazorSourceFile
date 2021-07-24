@@ -20,16 +20,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="5.0.0" />
+    <ProjectReference Include="..\FindRazorSourceFile\FindRazorSourceFile.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="build\*" Pack="true" PackagePath="build/%(Filename)%(Extension)" />
     <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
     <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\FindRazorSourceFile\FindRazorSourceFile.csproj" />
   </ItemGroup>
 
   <Target Name="PreparePackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec">
