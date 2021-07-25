@@ -4,7 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>nullable</WarningsAsErrors>
-    <Version>1.0.0-preview.1.3</Version>
+    <Version>1.0.0-preview.1.5</Version>
     <Description>Enables Ctrl+Shift+F to show a source .razor file name of each rendered component on a browser window.</Description>
     <Authors>J.Sakamoto</Authors>
     <Owners>J.Sakamoto</Owners>
@@ -25,6 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="build\*" Pack="true" PackagePath="build/%(Filename)%(Extension)" />
+    <None Include="..\FindRazorSourceFile\build\FindRazorSourceFile.targets" Visible="false" Pack="true" PackagePath="build/%(Filename)%(Extension)" />
     <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
     <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
   </ItemGroup>

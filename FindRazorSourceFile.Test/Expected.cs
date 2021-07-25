@@ -20,7 +20,10 @@ namespace FindRazorSourceFile.Test
         {
             ["Client"] = new MapFile[] {
                 new("b-zet8bdnfpi.txt", @"SampleSite.Client|Pages\Bar.razor"),
-            }
+            },
+            ["Server"] = new MapFile[] {
+                // EMPTY
+            },
         };
     }
 }

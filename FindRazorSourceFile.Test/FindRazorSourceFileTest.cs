@@ -16,7 +16,7 @@ namespace FindRazorSourceFile.Test
 
         public static IEnumerable<string> HostingModels { get; } = new[] {
             "Client",
-            // "Server",
+            "Server"
         };
 
         [Test, TestCaseSource(typeof(FindRazorSourceFileTest), nameof(HostingModels))]
