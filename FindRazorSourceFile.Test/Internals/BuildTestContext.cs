@@ -10,6 +10,8 @@ namespace FindRazorSourceFile.Test.Internals
 
         public string OutputDir { get; }
 
+        public string HostingModel { get; }
+
         public string HostProjectDir { get; }
 
         public string StaticWebAssetsMetaPath { get; }
@@ -23,6 +25,7 @@ namespace FindRazorSourceFile.Test.Internals
         public BuildTestContext(string hostingModel)
         {
             this._WorkFolder = new WorkFolder();
+            this.HostingModel = hostingModel;
             this.OutputDir = this._WorkFolder;
             this.HostProjectDir = Path.Combine(WorkFolder.SolutionDir, "SampleSites", hostingModel);
             this.StaticWebAssetsMetaPath = Path.Combine(this.OutputDir, $"SampleSite.{hostingModel}.StaticWebAssets.xml");
