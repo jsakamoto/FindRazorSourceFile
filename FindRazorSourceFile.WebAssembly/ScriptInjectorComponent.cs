@@ -17,17 +17,14 @@ namespace FindRazorSourceFile.WebAssembly
 
         protected override async Task OnInitializedAsync()
         {
-            _Script = await _JS.InvokeAsync<IJSObjectReference>("import", "./_content/FindRazorSourceFile/script.js");
-            Console.WriteLine($"ScriptInjectorComponent: OnInitialized! [{(_Script != null)}]");
-
-            if (_Script == null) return;
-
-            await _Script.InvokeVoidAsync("init", "Taro");
+            this._Script = await this._JS.InvokeAsync<IJSObjectReference>("import", "./_content/FindRazorSourceFile/script.js");
+            if (this._Script == null) return;
+            await this._Script.InvokeVoidAsync("init", "Taro");
         }
 
         public async ValueTask DisposeAsync()
         {
-            if (_Script != null) await _Script.DisposeAsync();
+            if (this._Script != null) await this._Script.DisposeAsync();
         }
     }
 }

@@ -8,10 +8,11 @@ const razorSourceMap = {};
 var currentMode = 0 /* Inactive */;
 export function init(name) {
     elements = createElements();
+    updateUIeffects(1 /* Active */);
     elements.overlay.addEventListener('mousemove', ev => overlay_onMouseMove(ev));
     elements.overlay.addEventListener('click', ev => overlay_onClick(ev));
     elements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
-    elements.sourceNameTip.addEventListener('click', ev => ev.stopPropagation());
+    elements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
     document.addEventListener('keydown', ev => onKeyDown(ev));
 }
 function createElements() {
@@ -23,10 +24,8 @@ function createElements() {
     overlay.style.right = '0';
     overlay.style.zIndex = '9999';
     overlay.style.backgroundColor = 'transparent';
-    overlay.style.borderColor = 'rgba(0, 0, 0, 0.7)';
     overlay.style.borderStyle = 'solid';
-    overlay.style.boxShadow = 'inset rgb(0, 0, 0, 0.7) 0px 0px 6px 4px';
-    overlay.style.transition = 'border-width 0.1s linear, opacity 0.2s linear';
+    overlay.style.transition = 'border 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s linear';
     overlay.style.display = 'none';
     overlay.style.opacity = '0';
     document.body.appendChild(overlay);
@@ -42,11 +41,18 @@ function createElements() {
     sourceNameTip.style.boxShadow = '2px 2px 4px 0px rgb(0, 0, 0, 0.5)';
     sourceNameTip.style.whiteSpace = 'nowrap';
     sourceNameTip.style.display = 'none';
+    sourceNameTip.style.transition = 'opacity 0.2s ease-out';
     overlay.appendChild(sourceNameTip);
     return { overlay, sourceNameTip };
 }
+function updateUIeffects(mode) {
+    const overlayOpacity = mode === 1 /* Active */ ? 0.3 : 0.5;
+    const sourcetipOpacity = mode === 1 /* Active */ ? '0.8' : '1.0';
+    elements.overlay.style.borderColor = `rgba(0, 0, 0, ${overlayOpacity})`;
+    elements.overlay.style.boxShadow = `inset rgb(0, 0, 0, ${overlayOpacity}) 0px 0px 6px 4px`;
+    elements.sourceNameTip.style.opacity = sourcetipOpacity;
+}
 function onKeyDown(ev) {
-    console.log(ev);
     if (currentMode === 0 /* Inactive */ && ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey) {
         ev.stopPropagation();
         ev.preventDefault();
@@ -63,12 +69,15 @@ function onKeyDown(ev) {
     else if ((currentMode === 1 /* Active */ || currentMode === 2 /* Locked */) && ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey) {
         ev.stopPropagation();
         ev.preventDefault();
-        currentMode = 0 /* Inactive */;
+        currentMode = currentMode === 2 /* Locked */ ? 1 /* Active */ : 0 /* Inactive */;
+        updateUIeffects(1 /* Active */);
         elements.sourceNameTip.style.display = 'none';
         elements.overlay.style.borderWidth = '50vh 50vw';
-        elements.overlay.style.opacity = '0';
-        setTimeout(() => { if (currentMode === 0 /* Inactive */)
-            elements.overlay.style.display = 'none'; }, 200);
+        if (currentMode === 0 /* Inactive */) {
+            elements.overlay.style.opacity = '0';
+            setTimeout(() => { if (currentMode === 0 /* Inactive */)
+                elements.overlay.style.display = 'none'; }, 200);
+        }
     }
 }
 async function overlay_onMouseMove(ev) {
@@ -80,6 +89,7 @@ function overlay_onClick(ev) {
     if (currentMode === 1 /* Active */) {
         if (lastDetectedTarget !== null && lastDetectedScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
             currentMode = 2 /* Locked */;
+            updateUIeffects(2 /* Locked */);
             const event = new Event("razorsource:lockin" /* LockIn */, { bubbles: false, cancelable: false });
             event.razorSourceName = lastDetectedRazorSource;
             document.dispatchEvent(event);
@@ -87,7 +97,14 @@ function overlay_onClick(ev) {
     }
     else if (currentMode === 2 /* Locked */) {
         currentMode = 1 /* Active */;
+        updateUIeffects(1 /* Active */);
         detectTargetAndDisplayIt(ev);
+    }
+}
+function sourceNameTip_onClick(ev) {
+    ev.stopPropagation();
+    if (currentMode === 1 /* Active */) {
+        overlay_onClick(ev);
     }
 }
 async function detectTargetAndDisplayIt(ev) {

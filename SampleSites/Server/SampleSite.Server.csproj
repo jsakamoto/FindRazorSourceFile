@@ -6,7 +6,7 @@
 
   <ItemGroup>
 	  <PackageReference Include="Microsoft.VisualStudio.Web.BrowserLink" Version="2.2.0" />
-	  <PackageReference Include="FindRazorSourceFile.Server" Version="1.0.0-preview.1.5" />
+	  <PackageReference Include="FindRazorSourceFile.Server" Version="1.0.0-preview.1.6" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Components\SampleSite.Components.csproj" />
