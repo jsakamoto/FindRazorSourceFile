@@ -33,6 +33,7 @@ namespace SampleSite.Server
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.UseBrowserLink();
                 app.UseFindRazorSourceFile();
             }
             else
