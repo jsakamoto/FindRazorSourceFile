@@ -26,6 +26,7 @@ namespace SampleSite.Host
             {
                 app.UseDeveloperExceptionPage();
                 app.UseWebAssemblyDebugging();
+                app.UseBrowserLink();
             }
 
             app.UseHttpsRedirection();
