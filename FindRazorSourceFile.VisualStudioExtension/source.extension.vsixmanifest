@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="d8ff5192-e5b9-4799-85c9-5956594a276d" Version="0.0.0.0" Language="en-US" Publisher="J.Sakamoto" />
+        <Identity Id="d8ff5192-e5b9-4799-85c9-5956594a276d" Version="1.0.0.0" Language="en-US" Publisher="J.Sakamoto" />
         <DisplayName>Find Razor Source File - Browser Link Extension</DisplayName>
-        <Description xml:space="preserve">Enable "Find Razor Source File" feature for your Visual Studio.</Description>
+        <Description xml:space="preserve">For Blazor projects, the .razor file that generated the clicked HTML element in a web browser will be opened in a Visual Studio IDE.
+(This extension only works with the project that installed the "FindRazorSourceFile" NuGet package.)</Description>
+        <MoreInfo>https://github.com/jsakamoto/FindRazorSourceFile</MoreInfo>
+        <License>LICENSE.txt</License>
+        <ReleaseNotes>RELEASE-NOTES.txt</ReleaseNotes>
+        <Icon>vsix-icon.png</Icon>
+        <Tags>Blazor,Web,ASP.NET Core</Tags>
+        <Preview>true</Preview>
     </Metadata>
     <Installation>
         <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[16.0, 17.0)" />
