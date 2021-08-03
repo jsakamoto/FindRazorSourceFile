@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <WarningsAsErrors>nullable</WarningsAsErrors>
     <Version>1.0.0-preview.1.6</Version>
-    <Description>Enables Ctrl+Shift+F to show a source .razor file name of each rendered component on a browser window.</Description>
+    <Description>This package makes your Blazor apps display the source .razor file name that generated the HTML element under the mouse cursor when entering the Ctrl + Shift + F hotkeys.</Description>
     <Authors>J.Sakamoto</Authors>
     <Owners>J.Sakamoto</Owners>
     <Copyright>Copyright © 2021 J.Sakamoto, Mozilla Public License 2.0</Copyright>
@@ -15,7 +15,7 @@
     <PackageProjectUrl>https://github.com/jsakamoto/FindRazorSourceFile</PackageProjectUrl>
     <PackageOutputPath>..\_dist\</PackageOutputPath>
     <PackageIcon>nupkg-icon.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
   </PropertyGroup>
 
   <ItemGroup>
