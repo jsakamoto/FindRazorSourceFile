@@ -1,4 +1,6 @@
-﻿# FindRazorSourceFile [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.WebAssembly.svg)](https://www.nuget.org/packages/FindRazorSourceFile.WebAssembly/) [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.Server.svg)](https://www.nuget.org/packages/FindRazorSourceFile.Server/)
+﻿# FindRazorSourceFile
+
+[![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.WebAssembly.svg?label=for+Blazor+WebAssembly)](https://www.nuget.org/packages/FindRazorSourceFile.WebAssembly/) [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.Server.svg?label=for+Blazor+Server)](https://www.nuget.org/packages/FindRazorSourceFile.Server/)
 
 ## What's this?
 
@@ -8,7 +10,7 @@ This package makes your Blazor apps display the source .razor file name that gen
 
 ## 1. Installation
 
-### 1-(a). for Blazor WebAssembly projects
+### 1-a. for Blazor WebAssembly projects
 
 1. Add **the `FindRazorSource.WebAssembly` NuGet package** to your Blazor WebAssembly project.
 
@@ -34,7 +36,7 @@ using FindRazorSourceFile.WebAssembly; // 👈 Open this namespace, and...
     ...
 ```
 
-### 1-(b). for Blazor Server projects
+### 1-b. for Blazor Server projects
 
 1. Add **the `FindRazorSource.Server` NuGet package** to your Blazor Server project.
 
@@ -59,7 +61,7 @@ using FindRazorSourceFile.Server; // 👈 Open this namespace, and...
     ...
 ```
 
-### 1-(c). for Blazor components library projects
+### 1-c. for Blazor components library projects
 
 What you have to do is just adding **the `FindRazorSource` NuGet package** to the library project.
 
@@ -93,13 +95,55 @@ To escape from these modes, you can press **the `ESC` key**.
 
 And also, the mouse click during the "Lock Mode" will exit that mode and return to "Inspection Mode".
 
-## The Visual Studio Extension for "FindRazorSourceFile"
+## 3. The Visual Studio Extension for "FindRazorSourceFile"
 
-If you are using Visual Studio 2019 IDE on Windows OS, please check out the Visual Studio Extension "Find Razor Source File - Browser Link Extension" from the URL below.
+If you are using Visual Studio 2019 IDE on Windows OS, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension"** from the URL below.
 
 - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix
 
 If you have installed the extension above in your Visual Studio IDE and configured everything required to enable the "BrowserLink" feature of Visual Studio, entering "Lock Mode" causes **opening the .razor file the source of clicked HTML element automatically in your Visual Studio!**
+
+### 3-1. Requirements
+
+- Visual Studio 2019 (currently Visual Studio 2022 is not supported yet.)
+
+- "Find Razor Source File - Browser Link Extension" works only on Blazor Server projects and ASP.NET Core hosted Blazor WebAssembly projects. **Currently, the extension doesn't work on Blazor WebAssembly client-only projects yet.**
+
+### 3-2. Usage
+
+To enable "Find Razor Source File - Browser Link Extension", please follow the instruction below.
+
+1. Of course, the target project must have installed the "FindRazorSource" feature, and please confirm the "Inspection Mode" and "Lock Mode" works well on a web browser before.
+
+2. Add **the `Microsoft.VisualStudio.Web.BrowserLink` NuGet package** to your Blazor Server or ASP.NET Core host project.
+
+```shell
+> dotnet add package Microsoft.VisualStudio.Web.BrowserLink
+```
+
+3. Add calling of **the `UseBrowserLink()` extension method** for `IApplicationBuilder` at the startup of your Blazor Server app or ASP.NET Core host app.
+
+```csharp
+// This is a "Startup.cs" file of a Server app.
+  ...
+  public void Configure(IApplicationBuilder app, ...)
+  {
+    if (env.IsDevelopment())
+    {
+      ...      
+      app.UseBrowserLink(); // 👈 Add this line.
+      ...
+    }
+    ...
+```
+
+**IMPORTANT NOTICE:** Please place the calling `UseBrowserLink()` before the calling `UseFindRazorSourceFile()` if the project is a Blazor Server.
+
+4. Chek on the "Enable Browser Link" dropdown menu in the toolbar of your Visual Studio.
+
+![fig.1](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/fig.1.png)
+
+After doing the all steps of the instruction above and launch the project, the .razor source file will be opened in the Visual Studio when the HTML element is clicked in the "Inspection Mode" on a web browser! 👍
 
 ## License
 
