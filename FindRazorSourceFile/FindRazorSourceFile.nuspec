@@ -13,7 +13,7 @@
     <tags>$tags$</tags>
     <releaseNotes>$releaseNotes$</releaseNotes>
     <icon>Icon.png</icon>
-    <!--<readme>README.md</readme>-->
+    <readme>README.md</readme>
   </metadata>
   <files>
     <file src="..\.assets\nupkg-icon.png" target="Icon.png" />
@@ -21,6 +21,6 @@
     <file src="buildMultiTargeting\**" target="buildMultiTargeting" />
     <file src="buildTransitive\**" target="buildTransitive" />
     <file src="wwwroot\**" target="staticwebassets" />
-    <!--<file src="..\README.md" target="README.md" />-->
+    <file src="..\README.md" target="README.md" />
   </files>
 </package>

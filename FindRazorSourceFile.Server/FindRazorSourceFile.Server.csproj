@@ -15,7 +15,7 @@
     <PackageProjectUrl>https://github.com/jsakamoto/FindRazorSourceFile</PackageProjectUrl>
     <PackageOutputPath>..\_dist\</PackageOutputPath>
     <PackageIcon>nupkg-icon.png</PackageIcon>
-    <!--<PackageReadmeFile>README.md</PackageReadmeFile>-->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
