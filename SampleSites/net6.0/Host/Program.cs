@@ -1,20 +1,33 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+﻿using SampleSite.Components.Services;
+using SampleSite.Host.Services;
 
-namespace SampleSite.Host
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+builder.Services.AddSingleton<IWeatherForecastService, DummyWeatherForecastService>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
+    app.UseDeveloperExceptionPage();
+    app.UseWebAssemblyDebugging();
 }
+else
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts(); // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+}
+
+app.UseHttpsRedirection();
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+app.UseRouting();
+app.MapRazorPages();
+app.MapControllers();
+app.MapFallbackToPage("/_Host");
+
+app.Run();
