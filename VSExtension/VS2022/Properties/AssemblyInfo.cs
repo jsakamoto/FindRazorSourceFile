@@ -4,8 +4,8 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Find Razor Source File - Visual Studio Browser Link Extension")]
-[assembly: AssemblyDescription("Enable \"Find Razor Source File\" feature for your Visual Studio.")]
+[assembly: AssemblyTitle("Find Razor Source File - Visual Studio 2022 Browser Link Extension")]
+[assembly: AssemblyDescription("Enable \"Find Razor Source File\" feature for your Visual Studio 2022.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Find Razor Source File")]
