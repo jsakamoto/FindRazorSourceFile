@@ -4,7 +4,9 @@
     function razorsource_onlockin(ev) {
         const projectName = ev.razorSourceName.projectName;
         const itemName = ev.razorSourceName.itemName;
-        browserLink.invoke("Razorsource_OnLockIn", projectName, itemName);
+        setTimeout(() => {
+            browserLink.invoke("Razorsource_OnLockIn", projectName, itemName);
+        }, 100);
     }
 
     return {};
