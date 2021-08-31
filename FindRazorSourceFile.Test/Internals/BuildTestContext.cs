@@ -8,29 +8,38 @@ namespace FindRazorSourceFile.Test.Internals
     {
         private readonly WorkFolder _WorkFolder;
 
+        /// <summary>ex: "C:\...\FindRazorSourceFile.Test\bin\Debug\net5.0\111...1\"</summary>
         public string OutputDir { get; }
 
         public string HostingModel { get; }
 
         public string HostProjectDir { get; }
 
-        public string StaticWebAssetsMetaPath { get; }
+        public string StaticWebAssetsXmlPath { get; }
+
+        public string StaticWebAssetsJsonPath { get; }
+
+        public string StaticWebAssetsRuntimeJsonPath { get; }
 
         public string MapFilesDirOfHost { get; }
 
+        /// <summary>ex: "C:\...\SampleSites\net5.0\Components\obj\Debug\net5.0\RazorSourceMapFiles\"</summary>
         public string MapFilesDirOfComponent { get; }
 
         private static string PathOf(string pathString) => Path.Combine(pathString.Split('/'));
 
-        public BuildTestContext(string hostingModel)
+        public BuildTestContext(string hostingModel, string framework)
         {
             this._WorkFolder = new WorkFolder();
             this.HostingModel = hostingModel;
-            this.OutputDir = this._WorkFolder;
-            this.HostProjectDir = Path.Combine(WorkFolder.SolutionDir, "SampleSites", hostingModel);
-            this.StaticWebAssetsMetaPath = Path.Combine(this.OutputDir, $"SampleSite.{hostingModel}.StaticWebAssets.xml");
-            this.MapFilesDirOfHost = Path.Combine(WorkFolder.SolutionDir, PathOf($"SampleSites/{hostingModel}/obj/Debug/net5.0/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
-            this.MapFilesDirOfComponent = Path.Combine(WorkFolder.SolutionDir, PathOf("SampleSites/Components/obj/Debug/net5.0/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
+            this.OutputDir = this._WorkFolder + Path.DirectorySeparatorChar;
+            this.HostProjectDir = Path.Combine(WorkFolder.SolutionDir, "SampleSites", framework, hostingModel);
+            this.MapFilesDirOfHost = Path.Combine(WorkFolder.SolutionDir, PathOf($"SampleSites/{framework}/{hostingModel}/obj/Debug/{framework}/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
+            this.MapFilesDirOfComponent = Path.Combine(WorkFolder.SolutionDir, PathOf($"SampleSites/{framework}/Components/obj/Debug/{framework}/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
+
+            this.StaticWebAssetsXmlPath = Path.Combine(this.OutputDir, $"SampleSite.{hostingModel}.StaticWebAssets.xml");
+            this.StaticWebAssetsJsonPath = Path.Combine(this.OutputDir, $"SampleSite.{hostingModel}.staticwebassets.json");
+            this.StaticWebAssetsRuntimeJsonPath = Path.Combine(this.OutputDir, $"SampleSite.{hostingModel}.staticwebassets.runtime.json");
 
             if (Directory.Exists(this.MapFilesDirOfHost)) Directory.Delete(this.MapFilesDirOfHost, recursive: true);
             Directory.Exists(this.MapFilesDirOfHost).IsFalse();

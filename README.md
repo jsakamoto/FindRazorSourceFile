@@ -97,31 +97,42 @@ And also, the mouse click during the "Lock Mode" will exit that mode and return 
 
 ## 3. The Visual Studio Extension for "FindRazorSourceFile"
 
-If you are using Visual Studio 2019 IDE on Windows OS, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension"** from the URL below.
+If you are using Visual Studio IDE on Windows OS, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension / VS2022 Extension"** from the URL below.
 
-- https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix
+- **for Visual Studio 2019** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix
+- **for Visual Studio 2022** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix-2022
 
 If you have installed the extension above in your Visual Studio IDE and configured everything required to enable the "BrowserLink" feature of Visual Studio, entering "Lock Mode" causes **opening the .razor file the source of clicked HTML element automatically in your Visual Studio!**
 
 ### 3-1. Requirements
 
-- Visual Studio 2019 (currently Visual Studio 2022 is not supported yet.)
+- Visual Studio 2019 or 2022
 
-- "Find Razor Source File - Browser Link Extension" works only on Blazor Server projects and ASP.NET Core hosted Blazor WebAssembly projects. **Currently, the extension doesn't work on Blazor WebAssembly client-only projects yet.**
+- "Find Razor Source File - Browser Link Extension / VS2022 Extension" works only on Blazor Server projects and ASP.NET Core hosted Blazor WebAssembly projects. **Currently, the extension doesn't work on Blazor WebAssembly client-only projects yet.**
 
 ### 3-2. Usage
 
-To enable "Find Razor Source File - Browser Link Extension", please follow the instruction below.
+To enable "Find Razor Source File - Browser Link Extension / VS2022 Extension", please follow the instruction below.
 
 1. Of course, the target project must have installed the "FindRazorSource" feature, and please confirm the "Inspection Mode" and "Lock Mode" works well on a web browser before.
 
-2. Add **the `Microsoft.VisualStudio.Web.BrowserLink` NuGet package** to your Blazor Server or ASP.NET Core host project.
+2. Check on the "Enable Browser Link" dropdown menu in the toolbar of your Visual Studio.
+
+![fig.1](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/fig.1.png)
+
+If you are using Visual Studio 2019, you have to do an additional instruction below. 
+
+<details>
+<summary>Additional instruction steps in VS2019</summary>
+
+3. Add **the `Microsoft.VisualStudio.Web.BrowserLink` NuGet package** to your Blazor Server or ASP.NET Core host project.
 
 ```shell
 > dotnet add package Microsoft.VisualStudio.Web.BrowserLink
 ```
 
-3. Add calling of **the `UseBrowserLink()` extension method** for `IApplicationBuilder` at the startup of your Blazor Server app or ASP.NET Core host app.
+4. Add calling of **the `UseBrowserLink()` extension method** for `IApplicationBuilder` at the startup of your Blazor Server app or ASP.NET Core host app.
+
 
 ```csharp
 // This is a "Startup.cs" file of a Server app.
@@ -139,9 +150,7 @@ To enable "Find Razor Source File - Browser Link Extension", please follow the i
 
 **IMPORTANT NOTICE:** Please place the calling `UseBrowserLink()` before the calling `UseFindRazorSourceFile()` if the project is a Blazor Server.
 
-4. Chek on the "Enable Browser Link" dropdown menu in the toolbar of your Visual Studio.
-
-![fig.1](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/fig.1.png)
+</details>
 
 After doing the all steps of the instruction above and launch the project, the .razor source file will be opened in the Visual Studio when the HTML element is clicked in the "Inspection Mode" on a web browser! 👍
 

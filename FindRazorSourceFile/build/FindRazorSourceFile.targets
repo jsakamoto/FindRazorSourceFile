@@ -4,7 +4,7 @@
     <EnableFindRazorSourceFile Condition=" '$(Configuration)' != 'Release' AND '$(EnableFindRazorSourceFile)' == '' " >true</EnableFindRazorSourceFile>
     <_RazorSourceMapFilesDir>$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
     <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
-    <_RazorSourceMapFilesStaticWebAssetsSourceType Condition=" '$(_IsThisRazorClassLib)' != 'true' ">External</_RazorSourceMapFilesStaticWebAssetsSourceType>
+    <_RazorSourceMapFilesStaticWebAssetsSourceType Condition=" '$(_IsThisRazorClassLib)' != 'true' OR $(TargetFramework.StartsWith('net6')) ">Computed</_RazorSourceMapFilesStaticWebAssetsSourceType>
   </PropertyGroup>
 
   <Target Name="_DefineFindRazorSourceFileProperties">
@@ -50,20 +50,38 @@
                       File="$(_RazorSourceMapFilesDir)%(RazorComponent.CssScope).txt"
                       Lines="$(ProjectName)|%(RazorComponent.Identity)"
                       Condition=" '%(RazorComponent.CssScope)' != '' "/>
+
+    <!-- FOR .NET 6.0 SDK -->
+    <ItemGroup Condition=" $(TargetFramework.StartsWith('net6')) ">
+      <_RazorSourceMapFiles Include="$(_RazorSourceMapFilesDir)*.txt" />
+      <StaticWebAsset Include="@(_RazorSourceMapFiles)">
+        <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
+        <SourceId>FindRazorSourceFile.RazorSourceMapFiles</SourceId>
+        <ContentRoot>$(_RazorSourceMapFilesDir)</ContentRoot>
+        <BasePath>/</BasePath>
+        <RelativePath>_content/FindRazorSourceFile/RazorSourceMapFiles/%(FileName)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+        <OriginalItemSpec>%(FullPath)</OriginalItemSpec>
+        <AssetKind>All</AssetKind>
+        <AssetMode>All</AssetMode>
+        <AssetRole>Primary</AssetRole>
+      </StaticWebAsset>
+    </ItemGroup>
+  
   </Target>
 
   <Target Name="_CleanRazorSourceMapFiles" AfterTargets="Clean" DependsOnTargets="_DefineFindRazorSourceFileProperties">
     <RemoveDir Directories="$(_RazorSourceMapFilesDir)"/>
   </Target>
 
-  <ItemGroup Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
+  <!-- FOR .NET 5.0 SDK -->
+  <ItemGroup Condition=" '$(EnableFindRazorSourceFile)' == 'true' AND $(TargetFramework.StartsWith('net5')) ">
     <StaticWebAsset Include="$(_RazorSourceMapFilesDir)">
       <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
       <SourceId>FindRazorSourceFile.RazorSourceMapFiles</SourceId>
       <ContentRoot>$(_RazorSourceMapFilesDir)</ContentRoot>
       <BasePath>_content/FindRazorSourceFile/RazorSourceMapFiles</BasePath>
       <RelativePath>$(AssemblyName)</RelativePath>
-      <!--<RelativePath>%(RecursiveDir)%(FileName)%(Extension)</RelativePath>-->
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </StaticWebAsset>
   </ItemGroup>
