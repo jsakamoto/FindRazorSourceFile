@@ -1,2 +1,5 @@
+v.1.0.0-preview.2.0
+- Add support for .NET 6.0
+
 v.1.0.0-preview.1.6
 - 1st release.
