@@ -50,6 +50,8 @@ export function init(name: string) {
     elements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
 
     document.addEventListener('keydown', ev => onKeyDown(ev));
+
+    window.addEventListener('resize', ev => window_onResize(ev));
 }
 
 function createElements(): UIElements {
@@ -264,4 +266,13 @@ function getScopeRect(scope: string | null): Rect {
         });
     }
     return scopeRect;
+}
+
+function window_onResize(ev: UIEvent): void {
+    if (currentMode === Mode.Inactive) return;
+    if (currentScope === null || currentScopeRect === null) return;
+    if (lastDetectedRazorSource === null || lastDetectedRazorSource === 'NotFound') return;
+
+    currentScopeRect = getScopeRect(currentScope);
+    displayScopeMask(currentScopeRect, lastDetectedRazorSource);
 }

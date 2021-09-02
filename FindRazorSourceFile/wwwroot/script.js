@@ -13,6 +13,7 @@ export function init(name) {
     elements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
     elements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
     document.addEventListener('keydown', ev => onKeyDown(ev));
+    window.addEventListener('resize', ev => window_onResize(ev));
 }
 function createElements() {
     const overlay = document.createElement('div');
@@ -204,4 +205,14 @@ function getScopeRect(scope) {
         });
     }
     return scopeRect;
+}
+function window_onResize(ev) {
+    if (currentMode === 0 /* Inactive */)
+        return;
+    if (currentScope === null || currentScopeRect === null)
+        return;
+    if (lastDetectedRazorSource === null || lastDetectedRazorSource === 'NotFound')
+        return;
+    currentScopeRect = getScopeRect(currentScope);
+    displayScopeMask(currentScopeRect, lastDetectedRazorSource);
 }
