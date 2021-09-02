@@ -1,9 +1,8 @@
 const NotFound = 'NotFound';
 var elements;
-var lastHovered = null;
-var lastDetectedTarget = null;
-var lastDetectedScope = null;
 var lastDetectedRazorSource = null;
+var currentScope = null;
+var currentScopeRect = null;
 const razorSourceMap = {};
 var currentMode = 0 /* Inactive */;
 export function init(name) {
@@ -62,9 +61,8 @@ function onKeyDown(ev) {
         setTimeout(() => { if (currentMode === 1 /* Active */ || currentMode === 2 /* Locked */)
             elements.overlay.style.opacity = '1'; }, 1);
         elements.sourceNameTip.textContent = '';
-        lastHovered = null;
-        lastDetectedTarget = null;
-        lastDetectedScope = null;
+        currentScope = null;
+        currentScopeRect = null;
     }
     else if ((currentMode === 1 /* Active */ || currentMode === 2 /* Locked */) && ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey) {
         ev.stopPropagation();
@@ -87,7 +85,7 @@ async function overlay_onMouseMove(ev) {
 }
 function overlay_onClick(ev) {
     if (currentMode === 1 /* Active */) {
-        if (lastDetectedTarget !== null && lastDetectedScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
+        if (currentScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
             currentMode = 2 /* Locked */;
             updateUIeffects(2 /* Locked */);
             const event = new Event("razorsource:lockin" /* LockIn */, { bubbles: false, cancelable: false });
@@ -108,41 +106,53 @@ function sourceNameTip_onClick(ev) {
     }
 }
 async function detectTargetAndDisplayIt(ev) {
-    const result = detectTarget(ev);
-    if (result.targetHasChanged === false)
+    const result = detectScope(ev);
+    if (result.scopeHasChanged === false)
         return;
     lastDetectedRazorSource = await getRazorSourceName(result.scope);
-    displayTargetMask(result.target, lastDetectedRazorSource);
+    displayScopeMask(result.scopeRect, lastDetectedRazorSource);
 }
-function detectTarget(ev) {
+function detectScope(ev) {
     elements.overlay.style.visibility = 'hidden';
     const hovered = document.elementFromPoint(ev.clientX, ev.clientY);
     elements.overlay.style.visibility = 'visible';
-    if (hovered === lastHovered)
-        return { target: lastDetectedTarget, scope: lastDetectedScope, targetHasChanged: false };
-    lastHovered = hovered;
     let scope = null;
-    let target = null;
     for (var nearestTarget = hovered; nearestTarget !== null; nearestTarget = nearestTarget.parentElement) {
         scope = getScope(nearestTarget);
         if (scope !== null)
             break;
     }
-    if (nearestTarget != null && scope !== null) {
-        target = nearestTarget;
-        for (var t = nearestTarget.parentElement; t !== null; t = t.parentElement) {
-            const parentScope = getScope(t);
-            if (parentScope === null)
-                continue;
-            if (parentScope !== scope)
-                break;
-            target = t;
+    let nextScopeRect = null;
+    // if scope not found, re-check the mouse cursor is in current rect, and if it's true then keep current scope.
+    if (scope === null) {
+        if (currentScopeRect !== null) {
+            if (currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
+                currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
+                return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
+            }
         }
     }
-    const targetHasChanged = lastDetectedTarget !== target;
-    lastDetectedTarget = target;
-    lastDetectedScope = target === null ? null : scope;
-    return { target: lastDetectedTarget, scope: lastDetectedScope, targetHasChanged };
+    // else, next scope is found and current scope is also available...
+    else if (currentScope !== null && currentScope !== scope && currentScopeRect !== null) {
+        // ...and the mouse cursor is still in the current rect...
+        if (currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
+            currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
+            // if the current rect is included the next rect, then keep current scope.
+            nextScopeRect = getScopeRect(scope);
+            if (nextScopeRect.left < currentScopeRect.left &&
+                nextScopeRect.right > currentScopeRect.right &&
+                nextScopeRect.top < currentScopeRect.top &&
+                nextScopeRect.bottom > currentScopeRect.bottom) {
+                return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
+            }
+        }
+    }
+    const scopeHasChanged = currentScope !== scope;
+    if (scopeHasChanged) {
+        currentScope = scope;
+        currentScopeRect = scope == null ? null : (nextScopeRect !== null ? nextScopeRect : getScopeRect(scope));
+    }
+    return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged };
 }
 function getScope(element) {
     return element.getAttributeNames().filter(name => name.startsWith('b-'))[0] || null;
@@ -166,19 +176,32 @@ async function getRazorSourceName(scope) {
         return NotFound;
     }
 }
-function displayTargetMask(target, razorSourceName) {
-    if (target === null || razorSourceName === null || razorSourceName === NotFound) {
+function displayScopeMask(scopeRect, razorSourceName) {
+    if (scopeRect === null || razorSourceName === null || razorSourceName === NotFound) {
         elements.sourceNameTip.style.display = 'none';
         elements.overlay.style.borderWidth = '50vh 50vw';
         return;
     }
     const overlayRect = elements.overlay.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
     elements.overlay.style.borderStyle = 'solid';
-    elements.overlay.style.borderTopWidth = targetRect.top + 'px';
-    elements.overlay.style.borderLeftWidth = targetRect.left + 'px';
-    elements.overlay.style.borderBottomWidth = (overlayRect.height - targetRect.bottom) + 'px';
-    elements.overlay.style.borderRightWidth = (overlayRect.width - targetRect.right) + 'px';
+    elements.overlay.style.borderTopWidth = scopeRect.top + 'px';
+    elements.overlay.style.borderLeftWidth = scopeRect.left + 'px';
+    elements.overlay.style.borderBottomWidth = (overlayRect.height - scopeRect.bottom) + 'px';
+    elements.overlay.style.borderRightWidth = (overlayRect.width - scopeRect.right) + 'px';
     elements.sourceNameTip.textContent = `${razorSourceName.projectName} | ${razorSourceName.itemName}`;
     elements.sourceNameTip.style.display = 'block';
+}
+function getScopeRect(scope) {
+    const scopeRect = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
+    if (scope !== null) {
+        const allElementsInScope = document.body.querySelectorAll(`*[${scope}]`);
+        allElementsInScope.forEach(e => {
+            const rect = e.getBoundingClientRect();
+            scopeRect.top = Math.min(scopeRect.top, rect.top);
+            scopeRect.left = Math.min(scopeRect.left, rect.left);
+            scopeRect.bottom = Math.max(scopeRect.bottom, rect.bottom);
+            scopeRect.right = Math.max(scopeRect.right, rect.right);
+        });
+    }
+    return scopeRect;
 }
