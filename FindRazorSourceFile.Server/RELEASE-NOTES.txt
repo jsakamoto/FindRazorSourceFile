@@ -1,3 +1,8 @@
+v.1.0.0-preview.3.0
+- Improve: In the inspection mode, highlight the entire rectangle area of the scope where the mouse cursor is hovering.
+- Improve: In the inspection mode, suppress the flicker which happened the mouse cursor is moving a gap inter elements.
+- Improve: In the inspection mode, the highlighted area will be tracking the browser's window resizing.
+
 v.1.0.0-preview.2.0
 - Add support for .NET 6.0
 

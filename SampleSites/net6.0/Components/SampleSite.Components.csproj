@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="6.0.0-preview.7.21378.6" />
-    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.2.0" />
+    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.3.0" />
   </ItemGroup>
 
 </Project>

@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="FindRazorSourceFile.Server" Version="1.0.0-preview.2.0" />
+	  <PackageReference Include="FindRazorSourceFile.Server" Version="1.0.0-preview.3.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Components\SampleSite.Components.csproj" />
