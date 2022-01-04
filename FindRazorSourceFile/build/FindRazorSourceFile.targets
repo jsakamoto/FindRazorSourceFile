@@ -56,7 +56,7 @@
       <_RazorSourceMapFiles Include="$(_RazorSourceMapFilesDir)*.txt" />
       <StaticWebAsset Include="@(_RazorSourceMapFiles)">
         <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
-        <SourceId>FindRazorSourceFile.RazorSourceMapFiles</SourceId>
+        <SourceId>$(PackageId)</SourceId>
         <ContentRoot>$(_RazorSourceMapFilesDir)</ContentRoot>
         <BasePath>/</BasePath>
         <RelativePath>_content/FindRazorSourceFile/RazorSourceMapFiles/%(FileName)%(Extension)</RelativePath>
