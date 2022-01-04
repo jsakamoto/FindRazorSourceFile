@@ -5,6 +5,7 @@
     <_RazorSourceMapFilesDir>$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
     <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
     <_RazorSourceMapFilesStaticWebAssetsSourceType Condition=" '$(_IsThisRazorClassLib)' != 'true' OR $(TargetFramework.StartsWith('net6')) ">Computed</_RazorSourceMapFilesStaticWebAssetsSourceType>
+    <GenerateStaticWebAssetsPackTargetsDependsOn>_RemoveRazorSourceMapFilesFromPackage;$(GenerateStaticWebAssetsPackTargetsDependsOn);</GenerateStaticWebAssetsPackTargetsDependsOn>
   </PropertyGroup>
 
   <Target Name="_DefineFindRazorSourceFileProperties">
@@ -65,6 +66,7 @@
         <AssetKind>All</AssetKind>
         <AssetMode>All</AssetMode>
         <AssetRole>Primary</AssetRole>
+        <AssetTraitName>RazorSourceMapFiles</AssetTraitName>
       </StaticWebAsset>
     </ItemGroup>
   
@@ -72,6 +74,12 @@
 
   <Target Name="_CleanRazorSourceMapFiles" AfterTargets="Clean" DependsOnTargets="_DefineFindRazorSourceFileProperties">
     <RemoveDir Directories="$(_RazorSourceMapFilesDir)"/>
+  </Target>
+
+  <Target Name="_RemoveRazorSourceMapFilesFromPackage" Condition=" $(TargetFramework.StartsWith('net6')) ">
+    <ItemGroup>
+      <StaticWebAsset Remove="@(StaticWebAsset)" Condition=" %(AssetTraitName) == 'RazorSourceMapFiles' "/>
+    </ItemGroup>
   </Target>
 
   <!-- FOR .NET 5.0 SDK -->
