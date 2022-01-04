@@ -1,3 +1,7 @@
+v.1.0.0-preview.4.0
+- Fix: razor source map files are included in a .nuget file
+- Fix: can not find .razor files in referencing projects on .NET6
+
 v.1.0.0-preview.3.0
 - Improve: In the inspection mode, highlight the entire rectangle area of the scope where the mouse cursor is hovering.
 - Improve: In the inspection mode, suppress the flicker which happened the mouse cursor is moving a gap inter elements.
