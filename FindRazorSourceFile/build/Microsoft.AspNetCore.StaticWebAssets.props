@@ -1,11 +1,39 @@
 ﻿<Project>
   <ItemGroup>
+    <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\ASPRazorFile_16x.svg">
+      <SourceType>Package</SourceType>
+      <SourceId>FindRazorSourceFile</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/FindRazorSourceFile</BasePath>
+      <RelativePath>ASPRazorFile_16x.svg</RelativePath>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\ASPWebApplication_16x.svg">
+      <SourceType>Package</SourceType>
+      <SourceId>FindRazorSourceFile</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/FindRazorSourceFile</BasePath>
+      <RelativePath>ASPWebApplication_16x.svg</RelativePath>
+    </StaticWebAsset>
     <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\script.js">
       <SourceType>Package</SourceType>
       <SourceId>FindRazorSourceFile</SourceId>
       <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
       <BasePath>_content/FindRazorSourceFile</BasePath>
       <RelativePath>script.js</RelativePath>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\settings_black_24dp.svg">
+      <SourceType>Package</SourceType>
+      <SourceId>FindRazorSourceFile</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/FindRazorSourceFile</BasePath>
+      <RelativePath>settings_black_24dp.svg</RelativePath>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\vscode.svg">
+      <SourceType>Package</SourceType>
+      <SourceId>FindRazorSourceFile</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/FindRazorSourceFile</BasePath>
+      <RelativePath>vscode.svg</RelativePath>
     </StaticWebAsset>
   </ItemGroup>
 </Project>
