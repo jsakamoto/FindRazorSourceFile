@@ -1,3 +1,7 @@
+v.1.0.0-preview.5.0
+- Improve: Added the ability to open the .razor file of the clicked component in VSCode.
+- Fix: the client-side script was not loaded in some cases.
+
 v.1.0.0-preview.4.0
 - Fix: razor source map files are included in a .nuget file
 - Fix: can not find .razor files in referencing projects on .NET6
