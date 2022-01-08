@@ -1,11 +1,17 @@
 ﻿interface UIElements {
     overlay: HTMLElement;
     sourceNameTip: HTMLElement;
+    sourceNameTipProjectName: HTMLElement;
+    sourceNameTipItemName: HTMLElement;
+    settingsButton: HTMLElement;
+    settingsForm: HTMLElement;
+    settingsOpenInVSCode: HTMLInputElement;
 }
 
 interface RazorSourceNameType {
     projectName: string;
     itemName: string;
+    fullPath: string;
 }
 type RazorSourceName = RazorSourceNameType | 'NotFound';
 const NotFound = 'NotFound';
@@ -39,7 +45,16 @@ var currentScopeRect: Rect | null = null;
 const razorSourceMap: { [key: string]: RazorSourceName | undefined } = {};
 var currentMode: Mode = Mode.Inactive;
 
+interface FindRazorSourceFileClientOptions {
+    openInVSCode: boolean;
+}
+var options: FindRazorSourceFileClientOptions = {
+    openInVSCode: false
+};
+const FindRazorSourceFileClientOptionsKey = 'razorsource:options';
+
 export function init(name: string) {
+
     elements = createElements();
     updateUIeffects(Mode.Active);
 
@@ -49,42 +64,83 @@ export function init(name: string) {
     elements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
     elements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
 
+    elements.settingsButton.addEventListener('click', ev => settingsButton_onClick(ev));
+
+    elements.settingsForm.addEventListener('click', ev => ev.stopPropagation());
+
+    elements.settingsOpenInVSCode.addEventListener('click', ev => settingsOpenInVSCode_onClick(ev));
+
     document.addEventListener('keydown', ev => onKeyDown(ev));
 
     window.addEventListener('resize', ev => window_onResize(ev));
+    window.addEventListener('storage', ev => window_onStorage(ev));
+
+    loadOptionsFromLocalStorage();
 }
 
 function createElements(): UIElements {
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.bottom = '0';
-    overlay.style.right = '0';
-    overlay.style.zIndex = '9999';
-    overlay.style.backgroundColor = 'transparent';
-    overlay.style.borderStyle = 'solid';
-    overlay.style.transition = 'border 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s linear';
-    overlay.style.display = 'none';
-    overlay.style.opacity = '0';
+
+    function createElement(tagName: string, style: object | null, attrib?: object | null): HTMLElement {
+        const element = document.createElement(tagName);
+        if (style !== null) {
+            Object.assign(element.style, style);
+        }
+        if (typeof (attrib) !== 'undefined' && attrib !== null) {
+            Object.assign(element, attrib);
+        }
+        return element;
+    }
+
+    const overlay = createElement('div', {
+        position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
+        backgroundColor: 'transparent', borderStyle: 'solid', display: 'none', opacity: '0',
+        transition: 'border 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s linear'
+    });
     document.body.appendChild(overlay);
 
-    const sourceNameTip = document.createElement('div');
-    sourceNameTip.style.position = 'absolute';
-    sourceNameTip.style.top = '4px';
-    sourceNameTip.style.left = '4px';
-    sourceNameTip.style.color = '#111';
-    sourceNameTip.style.fontFamily = 'sans-serif';
-    sourceNameTip.style.fontSize = '12px';
-    sourceNameTip.style.padding = '2px 6px';
-    sourceNameTip.style.backgroundColor = '#ffc107';
-    sourceNameTip.style.boxShadow = '2px 2px 4px 0px rgb(0, 0, 0, 0.5)';
-    sourceNameTip.style.whiteSpace = 'nowrap';
-    sourceNameTip.style.display = 'none';
-    sourceNameTip.style.transition = 'opacity 0.2s ease-out';
+    const sourceNameTip = createElement('div', {
+        position: 'absolute', top: '4px', left: '4px', padding: '2px 6px',
+        fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
+        backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
+        whiteSpace: 'nowrap', display: 'none', transition: 'opacity 0.2s ease-out'
+    });
     overlay.appendChild(sourceNameTip);
 
-    return { overlay, sourceNameTip };
+    sourceNameTip.appendChild(createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: './_content/FindRazorSourceFile/ASPWebApplication_16x.svg' }));
+    const sourceNameTipProjectName = createElement('span', { verticalAlign: 'middle', marginLeft: '4px' });
+    sourceNameTip.appendChild(sourceNameTipProjectName);
+    sourceNameTip.appendChild(createElement('span', { verticalAlign: 'middle' }, { textContent: ' | ' }));
+    sourceNameTip.appendChild(createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: './_content/FindRazorSourceFile/ASPRazorFile_16x.svg' }));
+    const sourceNameTipItemName = createElement('span', { verticalAlign: 'middle', marginLeft: '4px' });
+    sourceNameTip.appendChild(sourceNameTipItemName);
+
+    const settingsButton = createElement('button', {
+        position: 'fixed', bottom: '8px', right: '8px', height: '32px', paddingLeft: '30px',
+        fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
+        border: 'none', backgroundColor: '#fff', borderRadius: '64px', outline: 'none',
+        backgroundImage: 'url(\'./_content/FindRazorSourceFile/settings_black_24dp.svg\')',
+        backgroundRepeat: 'no-repeat', backgroundPosition: '5px center'
+    }, { title: 'Find Razor Source File - Settings', textContent: 'Find Razor Source File' });
+    overlay.appendChild(settingsButton);
+
+    const settingsForm = createElement('div', {
+        position: 'fixed', bottom: '0', right: '8px', padding: '8px 12px',
+        border: '#ccc', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
+        opacity: '0', transition: 'ease-out all 0.2s', pointerEvents: 'none'
+    });
+
+    const labelForOpenInVSCode = createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' });
+    const settingsOpenInVSCode = createElement('input', { margin: '0 8px 0 0', padding: '0', verticalAlign: 'middle' }, { type: 'checkbox' }) as HTMLInputElement;
+    labelForOpenInVSCode.appendChild(settingsOpenInVSCode);
+    labelForOpenInVSCode.appendChild(createElement('span', { verticalAlign: 'middle' }, { textContent: 'Open the .razor file of the clicked component in ' }));
+    labelForOpenInVSCode.appendChild(createElement('img', { verticalAlign: 'middle', width: '18px' },
+        { src: './_content/FindRazorSourceFile/vscode.svg' }));
+    labelForOpenInVSCode.appendChild(createElement('span', { verticalAlign: 'middle' }, { textContent: ' VSCode' }));
+
+    settingsForm.appendChild(labelForOpenInVSCode);
+    overlay.appendChild(settingsForm);
+
+    return { overlay, sourceNameTip, sourceNameTipProjectName, sourceNameTipItemName, settingsButton, settingsForm, settingsOpenInVSCode };
 }
 
 function updateUIeffects(mode: Mode.Active | Mode.Locked): void {
@@ -96,26 +152,32 @@ function updateUIeffects(mode: Mode.Active | Mode.Locked): void {
 }
 
 function onKeyDown(ev: KeyboardEvent): void {
-    if (currentMode === Mode.Inactive && ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey) {
+    const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
+    const pressedEscape = (ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey);
+
+    if (currentMode === Mode.Inactive && pressedCtrlShiftF) {
         ev.stopPropagation();
         ev.preventDefault();
 
         currentMode = Mode.Active;
         elements.overlay.style.borderWidth = '50vh 50vw';
         elements.overlay.style.display = 'block';
+        hideSettingsForm();
         setTimeout(() => { if (currentMode === Mode.Active || currentMode === Mode.Locked) elements.overlay.style.opacity = '1'; }, 1);
-        elements.sourceNameTip.textContent = '';
+        elements.sourceNameTipProjectName.textContent = '';
+        elements.sourceNameTipItemName.textContent = '';
         currentScope = null;
         currentScopeRect = null;
     }
-    else if ((currentMode === Mode.Active || currentMode === Mode.Locked) && ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey) {
+    else if ((currentMode === Mode.Active || currentMode === Mode.Locked) && (pressedEscape || pressedCtrlShiftF)) {
         ev.stopPropagation();
         ev.preventDefault();
 
-        currentMode = currentMode === Mode.Locked ? Mode.Active : Mode.Inactive;
+        currentMode = pressedCtrlShiftF ? Mode.Inactive : (currentMode === Mode.Locked ? Mode.Active : Mode.Inactive);
         updateUIeffects(Mode.Active);
         elements.sourceNameTip.style.display = 'none';
         elements.overlay.style.borderWidth = '50vh 50vw';
+        hideSettingsForm();
 
         if (currentMode === Mode.Inactive) {
             elements.overlay.style.opacity = '0';
@@ -130,6 +192,7 @@ async function overlay_onMouseMove(ev: MouseEvent): Promise<void> {
 }
 
 function overlay_onClick(ev: MouseEvent): void {
+    hideSettingsForm();
     if (currentMode === Mode.Active) {
         if (currentScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
             currentMode = Mode.Locked;
@@ -137,6 +200,11 @@ function overlay_onClick(ev: MouseEvent): void {
             const event = new Event(RazorSourceEventNames.LockIn, { bubbles: false, cancelable: false }) as RazorSourceEvent;
             event.razorSourceName = lastDetectedRazorSource;
             document.dispatchEvent(event);
+
+            // Open in a VSCode.
+            if (options.openInVSCode) {
+                window.location.href = `vscode://file/${lastDetectedRazorSource.fullPath}`;
+            }
         }
     }
     else if (currentMode === Mode.Locked) {
@@ -151,6 +219,34 @@ function sourceNameTip_onClick(ev: MouseEvent): void {
     if (currentMode === Mode.Active) {
         overlay_onClick(ev);
     }
+}
+
+function settingsButton_onClick(ev: MouseEvent): void {
+    ev.stopPropagation();
+    if (isHiddenSettingsForm()) showSettingsForm();
+    else hideSettingsForm();
+}
+
+function showSettingsForm(): void {
+    elements.settingsForm.style.opacity = '1';
+    elements.settingsForm.style.bottom = '48px';
+    elements.settingsForm.style.pointerEvents = 'unset';
+}
+
+function hideSettingsForm(): void {
+    elements.settingsForm.style.opacity = '0';
+    elements.settingsForm.style.bottom = '0';
+    elements.settingsForm.style.pointerEvents = 'none';
+}
+
+function isHiddenSettingsForm(): boolean {
+    return elements.settingsForm.style.opacity === '0';
+}
+
+function settingsOpenInVSCode_onClick(ev: MouseEvent): void {
+    ev.stopPropagation();
+    options.openInVSCode = elements.settingsOpenInVSCode.checked;
+    saveOptionsFromLocalStorage();
 }
 
 async function detectTargetAndDisplayIt(ev: MouseEvent): Promise<void> {
@@ -224,7 +320,7 @@ async function getRazorSourceName(scope: string | null): Promise<RazorSourceName
     if (res.ok) {
         const text = await res.text();
         const p = text.replace(/[\r\n]*$/ig, '').split('|');
-        const razorSourceName = { projectName: p[0], itemName: p[1] };
+        const razorSourceName = { projectName: p[0], itemName: p[1], fullPath: p[2] };
         razorSourceMap[scope] = razorSourceName;
         return razorSourceName;
     }
@@ -249,7 +345,8 @@ function displayScopeMask(scopeRect: Rect | null, razorSourceName: RazorSourceNa
     elements.overlay.style.borderBottomWidth = (overlayRect.height - scopeRect.bottom) + 'px';
     elements.overlay.style.borderRightWidth = (overlayRect.width - scopeRect.right) + 'px';
 
-    elements.sourceNameTip.textContent = `${razorSourceName.projectName} | ${razorSourceName.itemName}`;
+    elements.sourceNameTipProjectName.textContent = razorSourceName.projectName;
+    elements.sourceNameTipItemName.textContent = razorSourceName.itemName;
     elements.sourceNameTip.style.display = 'block';
 }
 
@@ -275,4 +372,19 @@ function window_onResize(ev: UIEvent): void {
 
     currentScopeRect = getScopeRect(currentScope);
     displayScopeMask(currentScopeRect, lastDetectedRazorSource);
+}
+
+function window_onStorage(ev: StorageEvent): void {
+    loadOptionsFromLocalStorage();
+}
+
+function saveOptionsFromLocalStorage(): void {
+    const optionString = JSON.stringify(options);
+    localStorage.setItem(FindRazorSourceFileClientOptionsKey, optionString);
+}
+
+function loadOptionsFromLocalStorage(): void {
+    const optionString = localStorage.getItem(FindRazorSourceFileClientOptionsKey);
+    Object.assign(options, JSON.parse(optionString || '{}'));
+    elements.settingsOpenInVSCode.checked = options.openInVSCode;
 }

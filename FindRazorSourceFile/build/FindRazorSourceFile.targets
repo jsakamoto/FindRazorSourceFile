@@ -49,7 +49,7 @@
     <MakeDir Directories="$(_RazorSourceMapFilesDir)"/>
     <WriteLinesToFile WriteOnlyWhenDifferent="true" Overwrite="true"
                       File="$(_RazorSourceMapFilesDir)%(RazorComponent.CssScope).txt"
-                      Lines="$(ProjectName)|%(RazorComponent.Identity)"
+                      Lines="$(ProjectName)|%(RazorComponent.Identity)|%(RazorComponent.FullPath)"
                       Condition=" '%(RazorComponent.CssScope)' != '' "/>
 
     <!-- FOR .NET 6.0 SDK -->
