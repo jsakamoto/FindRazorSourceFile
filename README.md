@@ -6,7 +6,9 @@
 
 This package makes your Blazor apps display the source .razor file name that generated the HTML element under the mouse cursor when entering the `Ctrl` + `Shift` + `F` hotkeys.
 
-![movie](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/movie-001.gif)
+![movie](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/movie-001-vs2022.gif)
+
+![movie](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/movie-001-vscode.gif)
 
 ## 1. Installation
 
@@ -95,7 +97,16 @@ To escape from these modes, you can press **the `ESC` key**.
 
 And also, the mouse click during the "Lock Mode" will exit that mode and return to "Inspection Mode".
 
-## 3. The Visual Studio Extension for "FindRazorSourceFile"
+## 3. Open in Visual Studio Code
+
+Once you enable the `"Open the .razor file of the clicked component in VSCode"` option from the `"Find Razor Source File"` settings button, which is placed in the bottom-right corner of the page,
+
+![fig.3](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/fig3.png)
+
+the .razor file of you clicked component will be opened in a Visual Studio Code editor.
+
+
+## 4. Open in Visual Studio IDE - the Visual Studio Extension for "FindRazorSourceFile"
 
 If you are using Visual Studio IDE on Windows OS, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension / VS2022 Extension"** from the URL below.
 
