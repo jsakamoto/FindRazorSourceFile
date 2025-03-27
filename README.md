@@ -2,6 +2,9 @@
 
 [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.WebAssembly.svg?label=for+Blazor+WebAssembly)](https://www.nuget.org/packages/FindRazorSourceFile.WebAssembly/) [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.Server.svg?label=for+Blazor+Server)](https://www.nuget.org/packages/FindRazorSourceFile.Server/)
 
+> [!CAUTION]
+> The Visual Studio Extension for "FindRazorSourceFile" is not available for now. I'm sorry for the inconvenience. I'm working on it to make it available as soon as possible. Thank you for your understanding.
+
 ## What's this?
 
 This package makes your Blazor apps display the source .razor file name that generated the HTML element under the mouse cursor when entering the `Ctrl` + `Shift` + `F` hotkeys.
@@ -107,6 +110,9 @@ the .razor file of you clicked component will be opened in a Visual Studio Code 
 
 
 ## 4. Open in Visual Studio IDE - the Visual Studio Extension for "FindRazorSourceFile"
+
+> [!CAUTION]
+> The Visual Studio Extension for "FindRazorSourceFile" is not available for now. I'm sorry for the inconvenience. I'm working on it to make it available as soon as possible. Thank you for your understanding.
 
 If you are using Visual Studio IDE on Windows OS, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension / VS2022 Extension"** from the URL below.
 

@@ -4,20 +4,83 @@
     <EnableFindRazorSourceFile Condition=" '$(Configuration)' != 'Release' AND '$(EnableFindRazorSourceFile)' == '' " >true</EnableFindRazorSourceFile>
     <_RazorSourceMapFilesDir>$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
     <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
-    <_RazorSourceMapFilesStaticWebAssetsSourceType Condition=" '$(_IsThisRazorClassLib)' != 'true' OR $(TargetFramework.StartsWith('net6')) ">Computed</_RazorSourceMapFilesStaticWebAssetsSourceType>
+    <_RazorSourceMapFilesStaticWebAssetsSourceType>Computed</_RazorSourceMapFilesStaticWebAssetsSourceType>
     <GenerateStaticWebAssetsPackTargetsDependsOn>_RemoveRazorSourceMapFilesFromPackage;$(GenerateStaticWebAssetsPackTargetsDependsOn);</GenerateStaticWebAssetsPackTargetsDependsOn>
   </PropertyGroup>
 
   <Target Name="_DefineFindRazorSourceFileProperties">
     <PropertyGroup>
-      <_VersionOfApplyCssScopesTask Condition=" '$(_RazorSdkTasksTFM)' == 'net5.0' OR '$(_RazorSdkTasksTFM)' == 'net46' ">1</_VersionOfApplyCssScopesTask>
+      <_VersionOfApplyCssScopesTask Condition=" '$(_RazorSdkTasksTFM)' == 'net46' ">1</_VersionOfApplyCssScopesTask>
       <_VersionOfApplyCssScopesTask Condition=" '$(_VersionOfApplyCssScopesTask)' == '' ">2</_VersionOfApplyCssScopesTask>
     </PropertyGroup>
   </Target>
 
+  <UsingTask TaskName="_FRSF_ComputeFingerprint" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <!-- Input parameteres -->
+      <Items ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <!-- Output parameters -->
+      <FingerprintedItems ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Numerics" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+
+static byte[] ComputeHash(ITaskItem item) {
+    var contentBytes = File.ReadAllBytes(item.ItemSpec);
+    using var sha256 = SHA256.Create();
+    return sha256.ComputeHash(contentBytes);
+}
+
+static string ToBase36(byte[] hash)
+{
+    var array = new char[10];
+    var buff = new byte[10];
+    Array.Copy(hash, buff, 10);
+    var dividend = BigInteger.Abs(new BigInteger(buff));
+    for (var i = 0; i < 10; i++)
+    {
+        dividend = BigInteger.DivRem(dividend, 36, out var remainder);
+        array[i] = "0123456789abcdefghijklmnopqrstuvwxyz"[(int)remainder];
+    }
+    return new string(array);
+}
+
+var fingerprintedItems = new List<ITaskItem>();
+var projectEndpoints = new List<ITaskItem>();
+foreach (var item in this.Items)
+{
+    var fingerprintedItem = new TaskItem(item.ItemSpec);
+    
+    var hash = default(byte[]);
+    var integrity = fingerprintedItem.GetMetadata("Integrity");
+    var fingerprint = fingerprintedItem.GetMetadata("Fingerprint");
+    if (string.IsNullOrEmpty(integrity) || string.IsNullOrEmpty(fingerprint)) hash = ComputeHash(item);
+    if (string.IsNullOrEmpty(integrity)) integrity = Convert.ToBase64String(hash);
+    if (string.IsNullOrEmpty(fingerprint)) fingerprint = ToBase36(hash);
+
+    fingerprintedItem.SetMetadata("Integrity", integrity);
+    fingerprintedItem.SetMetadata("Fingerprint", fingerprint);
+
+    fingerprintedItems.Add(fingerprintedItem);
+}
+    
+this.FingerprintedItems = fingerprintedItems.ToArray();
+
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
   <Target Name="_GenerateRazorSourceMapFiles"
           BeforeTargets="AssignRazorComponentTargetPaths;AssignRazorGenerateTargetPaths"
-          DependsOnTargets="_ResolveScopedCssOutputs;_DefineFindRazorSourceFileProperties"
+          DependsOnTargets="ResolveScopedCssOutputs;_DefineFindRazorSourceFileProperties"
           Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
 
     <ItemGroup>
@@ -52,10 +115,16 @@
                       Lines="$(ProjectName)|%(RazorComponent.Identity)|%(RazorComponent.FullPath)"
                       Condition=" '%(RazorComponent.CssScope)' != '' "/>
 
-    <!-- FOR .NET 6.0 SDK -->
-    <ItemGroup Condition=" $(TargetFramework.StartsWith('net6')) ">
+    <ItemGroup>
       <_RazorSourceMapFiles Include="$(_RazorSourceMapFilesDir)*.txt" />
-      <StaticWebAsset Include="@(_RazorSourceMapFiles)">
+    </ItemGroup>
+
+    <_FRSF_ComputeFingerprint Items="@(_RazorSourceMapFiles)">
+      <Output TaskParameter="FingerprintedItems" ItemName="_FingerprintedRazorSourceMapFiles" />
+    </_FRSF_ComputeFingerprint>
+
+    <ItemGroup>
+      <StaticWebAsset Include="@(_FingerprintedRazorSourceMapFiles)">
         <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
         <SourceId>$(PackageId)</SourceId>
         <ContentRoot>$(_RazorSourceMapFilesDir)</ContentRoot>
@@ -69,29 +138,17 @@
         <AssetTraitName>RazorSourceMapFiles</AssetTraitName>
       </StaticWebAsset>
     </ItemGroup>
-  
+
   </Target>
 
   <Target Name="_CleanRazorSourceMapFiles" AfterTargets="Clean" DependsOnTargets="_DefineFindRazorSourceFileProperties">
     <RemoveDir Directories="$(_RazorSourceMapFilesDir)"/>
   </Target>
 
-  <Target Name="_RemoveRazorSourceMapFilesFromPackage" Condition=" $(TargetFramework.StartsWith('net6')) ">
+  <Target Name="_RemoveRazorSourceMapFilesFromPackage">
     <ItemGroup>
       <StaticWebAsset Remove="@(StaticWebAsset)" Condition=" %(AssetTraitName) == 'RazorSourceMapFiles' "/>
     </ItemGroup>
   </Target>
-
-  <!-- FOR .NET 5.0 SDK -->
-  <ItemGroup Condition=" '$(EnableFindRazorSourceFile)' == 'true' AND $(TargetFramework.StartsWith('net5')) ">
-    <StaticWebAsset Include="$(_RazorSourceMapFilesDir)">
-      <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
-      <SourceId>FindRazorSourceFile.RazorSourceMapFiles</SourceId>
-      <ContentRoot>$(_RazorSourceMapFilesDir)</ContentRoot>
-      <BasePath>_content/FindRazorSourceFile/RazorSourceMapFiles</BasePath>
-      <RelativePath>$(AssemblyName)</RelativePath>
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </StaticWebAsset>
-  </ItemGroup>
 
 </Project>

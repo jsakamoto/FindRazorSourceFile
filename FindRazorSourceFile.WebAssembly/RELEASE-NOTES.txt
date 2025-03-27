@@ -1,3 +1,6 @@
+v.1.0.0-preview.6.0
+- Modernize the projects to work with the latest .NET SDK
+
 v.1.0.0-preview.5.0
 - Improve: Added the ability to open the .razor file of the clicked component in VSCode.
 - Fix: the client-side script was not loaded in some cases.
