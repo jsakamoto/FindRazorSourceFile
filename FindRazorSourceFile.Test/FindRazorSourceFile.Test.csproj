@@ -5,7 +5,7 @@
     <IsPackable>false</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
 
     <EnableNUnitRunner>true</EnableNUnitRunner>
     <OutputType>Exe</OutputType>

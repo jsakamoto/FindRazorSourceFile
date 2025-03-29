@@ -1,106 +1,101 @@
-﻿using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 
-namespace FindRazorSourceFile.Server.Internals
+namespace FindRazorSourceFile.Server.Internals;
+
+internal delegate Task WriteAsyncInvoker(byte[] buffer, int offset, int count, CancellationToken cancellationToken);
+
+internal delegate Task FlushAsyncInvoker(CancellationToken cancellationToken);
+
+internal class FilterStream : Stream
 {
-    internal delegate Task WriteAsyncInvoker(byte[] buffer, int offset, int count, CancellationToken cancellationToken);
+    private readonly HttpContext HttpContext;
 
-    internal delegate Task FlushAsyncInvoker(CancellationToken cancellationToken);
+    internal readonly MemoryStream MemoryStream;
 
-    internal class FilterStream : Stream
+    internal readonly Stream OriginalStream;
+
+    private bool _IsCaptured;
+
+    private WriteAsyncInvoker WriteAsyncInvoker;
+
+    private FlushAsyncInvoker FlushAsyncInvoker;
+
+    public override bool CanRead => false;
+
+    public override bool CanSeek => false;
+
+    public override bool CanTimeout => false;
+
+    public override bool CanWrite => true;
+
+    public override long Length => throw new NotSupportedException();
+
+    public override long Position
     {
-        private readonly HttpContext HttpContext;
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
 
-        internal readonly MemoryStream MemoryStream;
+    public FilterStream(HttpContext httpContext)
+    {
+        this.HttpContext = httpContext;
+        this.MemoryStream = new MemoryStream();
+        this.OriginalStream = this.HttpContext.Response.Body;
+        this.HttpContext.Response.Body = this;
 
-        internal readonly Stream OriginalStream;
+        this.WriteAsyncInvoker = this.DefaultWriteAsyncInvoker;
+        this.FlushAsyncInvoker = this.DefaultFlushAsyncInvoker;
+    }
 
-        private bool _IsCaptured;
+    public void RevertResponseBodyHooking()
+    {
+        this.HttpContext.Response.Body = this.OriginalStream;
+    }
 
-        private WriteAsyncInvoker WriteAsyncInvoker;
+    private Task DefaultWriteAsyncInvoker(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        return this.RebindInvokers().WriteAsync(buffer, offset, count, cancellationToken);
+    }
 
-        private FlushAsyncInvoker FlushAsyncInvoker;
+    private Task DefaultFlushAsyncInvoker(CancellationToken cancellationToken)
+    {
+        return this.RebindInvokers().FlushAsync(cancellationToken);
+    }
 
-        public override bool CanRead => false;
+    private Stream RebindInvokers()
+    {
+        this._IsCaptured = this.HttpContext.Response.ContentType?.StartsWith("text/html") == true;
+        var stream = this._IsCaptured ? this.MemoryStream : this.OriginalStream;
+        this.WriteAsyncInvoker = stream.WriteAsync;
+        this.FlushAsyncInvoker = stream.FlushAsync;
+        return stream;
+    }
 
-        public override bool CanSeek => false;
+    internal bool IsCaptured() => this._IsCaptured;
 
-        public override bool CanTimeout => false;
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
-        public override bool CanWrite => true;
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
-        public override long Length => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
 
-        public override long Position
-        {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
-        public FilterStream(HttpContext httpContext)
-        {
-            this.HttpContext = httpContext;
-            this.MemoryStream = new MemoryStream();
-            this.OriginalStream = this.HttpContext.Response.Body;
-            this.HttpContext.Response.Body = this;
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        return this.WriteAsyncInvoker(buffer, offset, count, cancellationToken);
+    }
 
-            this.WriteAsyncInvoker = this.DefaultWriteAsyncInvoker;
-            this.FlushAsyncInvoker = this.DefaultFlushAsyncInvoker;
-        }
+    public override void Flush() => throw new NotSupportedException();
 
-        public void RevertResponseBodyHooking()
-        {
-            this.HttpContext.Response.Body = this.OriginalStream;
-        }
+    public override Task FlushAsync(CancellationToken cancellationToken)
+    {
+        return this.FlushAsyncInvoker(cancellationToken);
+    }
 
-        private Task DefaultWriteAsyncInvoker(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            return this.RebindInvokers().WriteAsync(buffer, offset, count, cancellationToken);
-        }
-
-        private Task DefaultFlushAsyncInvoker(CancellationToken cancellationToken)
-        {
-            return this.RebindInvokers().FlushAsync(cancellationToken);
-        }
-
-        private Stream RebindInvokers()
-        {
-            this._IsCaptured = this.HttpContext.Response.ContentType?.StartsWith("text/html") == true;
-            var stream = this._IsCaptured ? this.MemoryStream : this.OriginalStream;
-            this.WriteAsyncInvoker = stream.WriteAsync;
-            this.FlushAsyncInvoker = stream.FlushAsync;
-            return stream;
-        }
-
-        internal bool IsCaptured() => this._IsCaptured;
-
-        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-
-        public override void SetLength(long value) => throw new NotSupportedException();
-
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            return this.WriteAsyncInvoker(buffer, offset, count, cancellationToken);
-        }
-
-        public override void Flush() => throw new NotSupportedException();
-
-        public override Task FlushAsync(CancellationToken cancellationToken)
-        {
-            return this.FlushAsyncInvoker(cancellationToken);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            this.MemoryStream.Dispose();
-        }
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        this.MemoryStream.Dispose();
     }
 }
