@@ -10,4 +10,12 @@
     </ItemGroup>
   </Target>
 
+  <PropertyGroup Condition="'$(EnableFindRazorSourceFile)' == 'true'">
+    <DefineConstants>$(DefineConstants);ENABLE_FIND_RAZOR_SOURCE_FILE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Visible="false" />
+  </ItemGroup>
+
 </Project>
