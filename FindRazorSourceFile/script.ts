@@ -54,32 +54,47 @@ const options: FindRazorSourceFileClientOptions = {
 const FindRazorSourceFileClientOptionsKey = 'razorsource:options';
 
 export const init = () => {
-
-    uiElements = createUIElements();
-    updateUIeffects(Mode.Active);
-
-    uiElements.overlay.addEventListener('mousemove', ev => overlay_onMouseMove(ev));
-    uiElements.overlay.addEventListener('click', ev => overlay_onClick(ev));
-
-    uiElements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
-    uiElements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
-
-    uiElements.settingsButton.addEventListener('click', ev => settingsButton_onClick(ev));
-
-    uiElements.settingsForm.addEventListener('click', ev => ev.stopPropagation());
-
-    uiElements.settingsOpenInVSCode.addEventListener('click', ev => settingsOpenInVSCode_onClick(ev));
-
-    document.addEventListener('keydown', ev => onKeyDown(ev));
-
-    window.addEventListener('resize', ev => window_onResize(ev));
-    window.addEventListener('storage', ev => window_onStorage(ev));
-
-    loadOptionsFromLocalStorage();
+    customElements.define("findrazorsourcefile-ui", UIRoot);
+    const uiRoot = document.createElement("findrazorsourcefile-ui");
+    document.body.appendChild(uiRoot);
 }
 
 type HTMLElementMap = { [key: string]: HTMLElement };
+
 type CreateElementResult = [HTMLElement, HTMLElementMap];
+
+class UIRoot extends HTMLElement {
+
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        const shadow = this.attachShadow({ mode: "open" });
+
+        uiElements = createUIElements(shadow);
+        updateUIeffects(Mode.Active);
+
+        uiElements.overlay.addEventListener('mousemove', ev => overlay_onMouseMove(ev));
+        uiElements.overlay.addEventListener('click', ev => overlay_onClick(ev));
+
+        uiElements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
+        uiElements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
+
+        uiElements.settingsButton.addEventListener('click', ev => settingsButton_onClick(ev));
+
+        uiElements.settingsForm.addEventListener('click', ev => ev.stopPropagation());
+
+        uiElements.settingsOpenInVSCode.addEventListener('click', ev => settingsOpenInVSCode_onClick(ev));
+
+        document.addEventListener('keydown', ev => onKeyDown(ev));
+
+        window.addEventListener('resize', ev => window_onResize(ev));
+        window.addEventListener('storage', ev => window_onStorage(ev));
+
+        loadOptionsFromLocalStorage();
+    }
+}
 
 const createElement = (tagName: string, style: object | null, attrib?: object | null, children?: (CreateElementResult | { [key: string]: CreateElementResult })[]): CreateElementResult => {
     let exposes: HTMLElementMap = {};
@@ -112,7 +127,7 @@ const createElement = (tagName: string, style: object | null, attrib?: object | 
     return [element, exposes];
 }
 
-const createUIElements = (): UIElements => {
+const createUIElements = (parent: ShadowRoot): UIElements => {
 
     const [overlay, exposes] = createElement('div', {
         position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
@@ -158,7 +173,7 @@ const createUIElements = (): UIElements => {
         }
     ]);
 
-    document.body.appendChild(overlay);
+    parent.appendChild(overlay);
 
     return { ...{ overlay }, ...exposes } as UIElements;
 }

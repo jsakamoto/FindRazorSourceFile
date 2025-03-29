@@ -10,20 +10,31 @@ const options = {
 };
 const FindRazorSourceFileClientOptionsKey = 'razorsource:options';
 export const init = () => {
-    uiElements = createUIElements();
-    updateUIeffects(1);
-    uiElements.overlay.addEventListener('mousemove', ev => overlay_onMouseMove(ev));
-    uiElements.overlay.addEventListener('click', ev => overlay_onClick(ev));
-    uiElements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
-    uiElements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
-    uiElements.settingsButton.addEventListener('click', ev => settingsButton_onClick(ev));
-    uiElements.settingsForm.addEventListener('click', ev => ev.stopPropagation());
-    uiElements.settingsOpenInVSCode.addEventListener('click', ev => settingsOpenInVSCode_onClick(ev));
-    document.addEventListener('keydown', ev => onKeyDown(ev));
-    window.addEventListener('resize', ev => window_onResize(ev));
-    window.addEventListener('storage', ev => window_onStorage(ev));
-    loadOptionsFromLocalStorage();
+    customElements.define("findrazorsourcefile-ui", UIRoot);
+    const uiRoot = document.createElement("findrazorsourcefile-ui");
+    document.body.appendChild(uiRoot);
 };
+class UIRoot extends HTMLElement {
+    constructor() {
+        super();
+    }
+    connectedCallback() {
+        const shadow = this.attachShadow({ mode: "open" });
+        uiElements = createUIElements(shadow);
+        updateUIeffects(1);
+        uiElements.overlay.addEventListener('mousemove', ev => overlay_onMouseMove(ev));
+        uiElements.overlay.addEventListener('click', ev => overlay_onClick(ev));
+        uiElements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
+        uiElements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
+        uiElements.settingsButton.addEventListener('click', ev => settingsButton_onClick(ev));
+        uiElements.settingsForm.addEventListener('click', ev => ev.stopPropagation());
+        uiElements.settingsOpenInVSCode.addEventListener('click', ev => settingsOpenInVSCode_onClick(ev));
+        document.addEventListener('keydown', ev => onKeyDown(ev));
+        window.addEventListener('resize', ev => window_onResize(ev));
+        window.addEventListener('storage', ev => window_onStorage(ev));
+        loadOptionsFromLocalStorage();
+    }
+}
 const createElement = (tagName, style, attrib, children) => {
     let exposes = {};
     const element = document.createElement(tagName);
@@ -51,7 +62,7 @@ const createElement = (tagName, style, attrib, children) => {
     });
     return [element, exposes];
 };
-const createUIElements = () => {
+const createUIElements = (parent) => {
     const [overlay, exposes] = createElement('div', {
         position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
         backgroundColor: 'transparent', borderStyle: 'solid', display: 'none', opacity: '0',
@@ -95,7 +106,7 @@ const createUIElements = () => {
             ])
         }
     ]);
-    document.body.appendChild(overlay);
+    parent.appendChild(overlay);
     return { ...{ overlay }, ...exposes };
 };
 const updateUIeffects = (mode) => {
