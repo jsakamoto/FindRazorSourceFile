@@ -2,9 +2,6 @@
 
 [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.WebAssembly.svg?label=for+Blazor+WebAssembly)](https://www.nuget.org/packages/FindRazorSourceFile.WebAssembly/) [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.Server.svg?label=for+Blazor+Server)](https://www.nuget.org/packages/FindRazorSourceFile.Server/)
 
-> [!CAUTION]
-> The Visual Studio Extension for "FindRazorSourceFile" is not available for now. I'm sorry for the inconvenience. I'm working on it to make it available as soon as possible. Thank you for your understanding.
-
 ## What's this?
 
 This package makes your Blazor apps display the source .razor file name that generated the HTML element under the mouse cursor when entering the `Ctrl` + `Shift` + `F` hotkeys.
@@ -30,16 +27,13 @@ This package makes your Blazor apps display the source .razor file name that gen
 ...
 using FindRazorSourceFile.WebAssembly; // 👈 Open this namespace, and...
 ...
-  public static async Task Main(string[] args)
-  {
-    var builder = WebAssemblyHostBuilder.CreateDefault(args);
-
-    // 👇 Add this #if ~ #endif block.
-#if DEBUG
-    builder.UseFindRazorSourceFile();
-#endif
-    ...
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.UseFindRazorSourceFile(); // 👈 Add this line.
+...
 ```
+
+> [!NOTE]  
+> The `UseFindRazorSourceFile()` method will work only when the target configuration is not "Release". That means any resources from "FindRazorSource" will not be loaded in the app after it is published with trimming. So, you don't need to worry about increasing the app size due to linking this library in the release environment. If you need to suppress the loading resources of this library in other configurations, please set the `EnableFindRazorSourceFile` property to `false` in the project file. For example, `<EnableFindRazorSourceFile>false</EnableFindRazorSourceFile>`.
 
 ### 1-b. for Blazor Server projects
 
@@ -52,18 +46,18 @@ using FindRazorSourceFile.WebAssembly; // 👈 Open this namespace, and...
 2. Add calling of **the `UseFindRazorSourceFile()` extension method** for `IApplicationBuilder` at the startup of your Blazor Server app.
 
 ```csharp
-// This is a "Startup.cs" file of a Blazor Server app.
+// This is a "Program.cs" file of a Blazor Server app.
 ...
 using FindRazorSourceFile.Server; // 👈 Open this namespace, and...
 ...
-  public void Configure(IApplicationBuilder app, ...)
-  {
-    if (env.IsDevelopment())
-    {
-      ...      
-      app.UseFindRazorSourceFile(); // 👈 Add this line.
-    }
+var builder = WebApplication.CreateBuilder(args);
+...
+if (app.Environment.IsDevelopment())
+{
     ...
+    app.UseFindRazorSourceFile(); // 👈 Add this line.
+}
+...
 ```
 
 ### 1-c. for Blazor components library projects
@@ -111,9 +105,6 @@ the .razor file of you clicked component will be opened in a Visual Studio Code 
 
 ## 4. Open in Visual Studio IDE - the Visual Studio Extension for "FindRazorSourceFile"
 
-> [!CAUTION]
-> The Visual Studio Extension for "FindRazorSourceFile" is not available for now. I'm sorry for the inconvenience. I'm working on it to make it available as soon as possible. Thank you for your understanding.
-
 If you are using Visual Studio IDE on Windows OS, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension / VS2022 Extension"** from the URL below.
 
 - **for Visual Studio 2019** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix
@@ -124,8 +115,6 @@ If you have installed the extension above in your Visual Studio IDE and configur
 ### 3-1. Requirements
 
 - Visual Studio 2019 or 2022
-
-- "Find Razor Source File - Browser Link Extension / VS2022 Extension" works only on Blazor Server projects and ASP.NET Core hosted Blazor WebAssembly projects. **Currently, the extension doesn't work on Blazor WebAssembly client-only projects yet.**
 
 ### 3-2. Usage
 
