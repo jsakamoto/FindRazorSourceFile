@@ -1,5 +1,5 @@
 ﻿<Project>
-  <ItemGroup>
+  <ItemGroup Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
     <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\ASPRazorFile_16x.svg">
       <SourceType>Package</SourceType>
       <SourceId>FindRazorSourceFile</SourceId>

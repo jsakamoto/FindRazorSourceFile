@@ -1,7 +1,6 @@
 ﻿<Project>
 
   <PropertyGroup>
-    <EnableFindRazorSourceFile Condition=" '$(Configuration)' != 'Release' AND '$(EnableFindRazorSourceFile)' == '' " >true</EnableFindRazorSourceFile>
     <_RazorSourceMapFilesDir>$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
     <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
     <_RazorSourceMapFilesStaticWebAssetsSourceType>Computed</_RazorSourceMapFilesStaticWebAssetsSourceType>
