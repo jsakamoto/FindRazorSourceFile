@@ -17,7 +17,7 @@ public class ScriptInjectorComponent : ComponentBase, IAsyncDisposable
     {
         this._Script = await this._JS.InvokeAsync<IJSObjectReference>("import", "./_content/FindRazorSourceFile/script.js");
         if (this._Script == null) return;
-        await this._Script.InvokeVoidAsync("init", "Taro");
+        await this._Script.InvokeVoidAsync("init");
     }
 
     public async ValueTask DisposeAsync()
