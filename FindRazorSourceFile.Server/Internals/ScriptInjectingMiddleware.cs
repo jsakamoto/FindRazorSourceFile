@@ -29,7 +29,7 @@ internal class ScriptInjectingMiddleware
                 using var doc = parser.ParseDocument(filter.MemoryStream);
 
                 doc.Body.Insert(AdjacentPosition.BeforeEnd,
-                    "<script type=\"module\">import { init } from './_content/FindRazorSourceFile/script.js'; init();</script>");
+                    "<script type=\"module\">import { init } from './_content/FindRazorSourceFile/script.min.js'; init();</script>");
 
                 filter.MemoryStream.SetLength(0);
                 var encoding = Encoding.UTF8;

@@ -9,41 +9,22 @@ const options = {
     openInVSCode: false
 };
 const FindRazorSourceFileClientOptionsKey = 'razorsource:options';
-export const init = () => {
-    customElements.define("findrazorsourcefile-ui", UIRoot);
-    const uiRoot = document.createElement("findrazorsourcefile-ui");
-    document.body.appendChild(uiRoot);
+const CONTENT_ROOT = './_content/FindRazorSourceFile/';
+const doc = document;
+const addEventListener = (target, handlers) => {
+    for (let key in handlers) {
+        target.addEventListener(key, handlers[key]);
+    }
 };
-class UIRoot extends HTMLElement {
-    constructor() {
-        super();
-    }
-    connectedCallback() {
-        const shadow = this.attachShadow({ mode: "open" });
-        uiElements = createUIElements(shadow);
-        updateUIeffects(1);
-        uiElements.overlay.addEventListener('mousemove', ev => overlay_onMouseMove(ev));
-        uiElements.overlay.addEventListener('click', ev => overlay_onClick(ev));
-        uiElements.sourceNameTip.addEventListener('mousemove', ev => ev.stopPropagation());
-        uiElements.sourceNameTip.addEventListener('click', ev => sourceNameTip_onClick(ev));
-        uiElements.settingsButton.addEventListener('click', ev => settingsButton_onClick(ev));
-        uiElements.settingsForm.addEventListener('click', ev => ev.stopPropagation());
-        uiElements.settingsOpenInVSCode.addEventListener('click', ev => settingsOpenInVSCode_onClick(ev));
-        document.addEventListener('keydown', ev => onKeyDown(ev));
-        window.addEventListener('resize', ev => window_onResize(ev));
-        window.addEventListener('storage', ev => window_onStorage(ev));
-        loadOptionsFromLocalStorage();
-    }
-}
+const stopPropagation = (ev) => ev.stopPropagation();
+const applyStyle = (element, style) => Object.assign(element.style, style);
 const createElement = (tagName, style, attrib, children) => {
     let exposes = {};
-    const element = document.createElement(tagName);
-    if (style !== null) {
-        Object.assign(element.style, style);
-    }
-    if (typeof (attrib) !== 'undefined' && attrib !== null) {
+    const element = doc.createElement(tagName);
+    if (style)
+        applyStyle(element, style);
+    if (attrib)
         Object.assign(element, attrib);
-    }
     const appendChild = ([childElement, childExposes]) => {
         element.appendChild(childElement);
         exposes = { ...exposes, ...childExposes };
@@ -62,6 +43,38 @@ const createElement = (tagName, style, attrib, children) => {
     });
     return [element, exposes];
 };
+export const init = () => {
+    customElements.define("findrazorsourcefile-ui", UIRoot);
+    const [uiRoot] = createElement("findrazorsourcefile-ui");
+    doc.body.appendChild(uiRoot);
+};
+class UIRoot extends HTMLElement {
+    constructor() {
+        super();
+    }
+    connectedCallback() {
+        const shadow = this.attachShadow({ mode: "open" });
+        uiElements = createUIElements(shadow);
+        updateUIeffects(1);
+        addEventListener(uiElements.overlay, {
+            mousemove: (ev) => overlay_onMouseMove(ev),
+            click: (ev) => overlay_onClick(ev)
+        });
+        addEventListener(uiElements.sourceNameTip, {
+            mousemove: stopPropagation,
+            click: (ev) => sourceNameTip_onClick(ev)
+        });
+        addEventListener(uiElements.settingsButton, { click: (ev) => settingsButton_onClick(ev) });
+        addEventListener(uiElements.settingsForm, { click: stopPropagation });
+        addEventListener(uiElements.settingsOpenInVSCode, { click: (ev) => settingsOpenInVSCode_onClick(ev) });
+        addEventListener(doc, { keydown: (ev) => onKeyDown(ev) });
+        addEventListener(window, {
+            resize: (ev) => window_onResize(ev),
+            storage: (ev) => window_onStorage(ev)
+        });
+        loadOptionsFromLocalStorage();
+    }
+}
 const createUIElements = (parent) => {
     const [overlay, exposes] = createElement('div', {
         position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
@@ -75,10 +88,10 @@ const createUIElements = (parent) => {
                 backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
                 whiteSpace: 'nowrap', display: 'none', transition: 'opacity 0.2s ease-out'
             }, null, [
-                createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: './_content/FindRazorSourceFile/ASPWebApplication_16x.svg' }),
+                createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPWebApplication_16x.svg' }),
                 { sourceNameTipProjectName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) },
                 createElement('span', { verticalAlign: 'middle' }, { textContent: ' | ' }),
-                createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: './_content/FindRazorSourceFile/ASPRazorFile_16x.svg' }),
+                createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPRazorFile_16x.svg' }),
                 { sourceNameTipItemName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) }
             ]),
         },
@@ -87,7 +100,7 @@ const createUIElements = (parent) => {
                 position: 'fixed', bottom: '8px', right: '8px', height: '32px', paddingLeft: '30px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
                 border: 'none', backgroundColor: '#fff', borderRadius: '64px', outline: 'none',
-                backgroundImage: 'url(\'./_content/FindRazorSourceFile/settings_black_24dp.svg\')',
+                backgroundImage: `url('${CONTENT_ROOT}settings_black_24dp.svg')`,
                 backgroundRepeat: 'no-repeat', backgroundPosition: '5px center'
             }, { title: 'Find Razor Source File - Settings', textContent: 'Find Razor Source File' })
         },
@@ -100,7 +113,7 @@ const createUIElements = (parent) => {
                 createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' }, null, [
                     { settingsOpenInVSCode: createElement('input', { margin: '0 8px 0 0', padding: '0', verticalAlign: 'middle' }, { type: 'checkbox' }) },
                     createElement('span', { verticalAlign: 'middle' }, { textContent: 'Open the .razor file of the clicked component in ' }),
-                    createElement('img', { verticalAlign: 'middle', width: '18px' }, { src: './_content/FindRazorSourceFile/vscode.svg' }),
+                    createElement('img', { verticalAlign: 'middle', width: '18px' }, { src: CONTENT_ROOT + 'vscode.svg' }),
                     createElement('span', { verticalAlign: 'middle' }, { textContent: ' VSCode' }),
                 ])
             ])
@@ -112,19 +125,23 @@ const createUIElements = (parent) => {
 const updateUIeffects = (mode) => {
     const overlayOpacity = mode === 1 ? 0.3 : 0.5;
     const sourcetipOpacity = mode === 1 ? '0.8' : '1.0';
-    uiElements.overlay.style.borderColor = `rgba(0, 0, 0, ${overlayOpacity})`;
-    uiElements.overlay.style.boxShadow = `inset rgb(0, 0, 0, ${overlayOpacity}) 0px 0px 6px 4px`;
+    applyStyle(uiElements.overlay, {
+        borderColor: `rgba(0, 0, 0, ${overlayOpacity})`,
+        boxShadow: `inset rgb(0, 0, 0, ${overlayOpacity}) 0px 0px 6px 4px`
+    });
     uiElements.sourceNameTip.style.opacity = sourcetipOpacity;
 };
 const onKeyDown = (ev) => {
     const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
     const pressedEscape = (ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey);
     if (currentMode === 0 && pressedCtrlShiftF) {
-        ev.stopPropagation();
+        stopPropagation(ev);
         ev.preventDefault();
         currentMode = 1;
-        uiElements.overlay.style.borderWidth = '50vh 50vw';
-        uiElements.overlay.style.display = 'block';
+        applyStyle(uiElements.overlay, {
+            borderWidth: '50vh 50vw',
+            display: 'block'
+        });
         hideSettingsForm();
         setTimeout(() => { if (currentMode === 1 || currentMode === 2)
             uiElements.overlay.style.opacity = '1'; }, 1);
@@ -134,7 +151,7 @@ const onKeyDown = (ev) => {
         currentScopeRect = null;
     }
     else if ((currentMode === 1 || currentMode === 2) && (pressedEscape || pressedCtrlShiftF)) {
-        ev.stopPropagation();
+        stopPropagation(ev);
         ev.preventDefault();
         currentMode = pressedCtrlShiftF ? 0 : (currentMode === 2 ? 1 : 0);
         updateUIeffects(1);
@@ -161,7 +178,7 @@ const overlay_onClick = (ev) => {
             updateUIeffects(2);
             const event = new Event("razorsource:lockin", { bubbles: false, cancelable: false });
             event.razorSourceName = lastDetectedRazorSource;
-            document.dispatchEvent(event);
+            doc.dispatchEvent(event);
             if (options.openInVSCode) {
                 window.location.href = `vscode://file/${lastDetectedRazorSource.fullPath}`;
             }
@@ -174,13 +191,13 @@ const overlay_onClick = (ev) => {
     }
 };
 const sourceNameTip_onClick = (ev) => {
-    ev.stopPropagation();
+    stopPropagation(ev);
     if (currentMode === 1) {
         overlay_onClick(ev);
     }
 };
 const settingsButton_onClick = (ev) => {
-    ev.stopPropagation();
+    stopPropagation(ev);
     if (isHiddenSettingsForm())
         showSettingsForm();
     else
@@ -190,7 +207,7 @@ const showSettingsForm = () => Object.assign(uiElements.settingsForm.style, { op
 const hideSettingsForm = () => Object.assign(uiElements.settingsForm.style, { opacity: '0', bottom: '0', pointerEvents: 'none' });
 const isHiddenSettingsForm = () => uiElements.settingsForm.style.opacity === '0';
 const settingsOpenInVSCode_onClick = (ev) => {
-    ev.stopPropagation();
+    stopPropagation(ev);
     options.openInVSCode = uiElements.settingsOpenInVSCode.checked;
     saveOptionsFromLocalStorage();
 };
@@ -203,7 +220,7 @@ const detectTargetAndDisplayIt = async (ev) => {
 };
 const detectScope = (ev) => {
     uiElements.overlay.style.visibility = 'hidden';
-    const hovered = document.elementFromPoint(ev.clientX, ev.clientY);
+    const hovered = doc.elementFromPoint(ev.clientX, ev.clientY);
     uiElements.overlay.style.visibility = 'visible';
     let scope = null;
     for (var nearestTarget = hovered; nearestTarget !== null; nearestTarget = nearestTarget.parentElement) {
@@ -246,7 +263,7 @@ const getRazorSourceName = async (scope) => {
     let razorSourceName = razorSourceMap[scope] || null;
     if (razorSourceName !== null)
         return razorSourceName;
-    const res = await fetch(`_content/FindRazorSourceFile/RazorSourceMapFiles/${scope}.txt`);
+    const res = await fetch(`${CONTENT_ROOT}RazorSourceMapFiles/${scope}.txt`);
     if (res.ok) {
         const text = await res.text();
         const p = text.replace(/[\r\n]*$/ig, '').split('|');
@@ -266,11 +283,13 @@ const displayScopeMask = (scopeRect, razorSourceName) => {
         return;
     }
     const overlayRect = uiElements.overlay.getBoundingClientRect();
-    uiElements.overlay.style.borderStyle = 'solid';
-    uiElements.overlay.style.borderTopWidth = scopeRect.top + 'px';
-    uiElements.overlay.style.borderLeftWidth = scopeRect.left + 'px';
-    uiElements.overlay.style.borderBottomWidth = (overlayRect.height - scopeRect.bottom) + 'px';
-    uiElements.overlay.style.borderRightWidth = (overlayRect.width - scopeRect.right) + 'px';
+    applyStyle(uiElements.overlay, {
+        borderStyle: 'solid',
+        borderTopWidth: scopeRect.top + 'px',
+        borderLeftWidth: scopeRect.left + 'px',
+        borderBottomWidth: (overlayRect.height - scopeRect.bottom) + 'px',
+        borderRightWidth: (overlayRect.width - scopeRect.right) + 'px'
+    });
     uiElements.sourceNameTipProjectName.textContent = razorSourceName.projectName;
     uiElements.sourceNameTipItemName.textContent = razorSourceName.itemName;
     uiElements.sourceNameTip.style.display = 'block';
@@ -278,7 +297,7 @@ const displayScopeMask = (scopeRect, razorSourceName) => {
 const getScopeRect = (scope) => {
     const scopeRect = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
     if (scope !== null) {
-        const allElementsInScope = document.body.querySelectorAll(`*[${scope}]`);
+        const allElementsInScope = doc.body.querySelectorAll(`*[${scope}]`);
         allElementsInScope.forEach(e => {
             const rect = e.getBoundingClientRect();
             scopeRect.top = Math.min(scopeRect.top, rect.top);
@@ -294,7 +313,7 @@ const window_onResize = (ev) => {
         return;
     if (currentScope === null || currentScopeRect === null)
         return;
-    if (lastDetectedRazorSource === null || lastDetectedRazorSource === 'NotFound')
+    if (lastDetectedRazorSource === null || lastDetectedRazorSource === NotFound)
         return;
     currentScopeRect = getScopeRect(currentScope);
     displayScopeMask(currentScopeRect, lastDetectedRazorSource);

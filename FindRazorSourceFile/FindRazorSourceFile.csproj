@@ -24,6 +24,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="bundleconfig.json" />
+    <None Include="bundleconfig.json" />
     <SupportedPlatform Include="browser" />
   </ItemGroup>
 

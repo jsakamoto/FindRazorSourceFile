@@ -15,7 +15,7 @@ public class ScriptInjectorComponent : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        this._Script = await this._JS.InvokeAsync<IJSObjectReference>("import", "./_content/FindRazorSourceFile/script.js");
+        this._Script = await this._JS.InvokeAsync<IJSObjectReference>("import", "./_content/FindRazorSourceFile/script.min.js");
         if (this._Script == null) return;
         await this._Script.InvokeVoidAsync("init");
     }

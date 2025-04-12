@@ -21,6 +21,13 @@
       <BasePath>_content/FindRazorSourceFile</BasePath>
       <RelativePath>script.js</RelativePath>
     </StaticWebAsset>
+    <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\script.min.js">
+      <SourceType>Package</SourceType>
+      <SourceId>FindRazorSourceFile</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/FindRazorSourceFile</BasePath>
+      <RelativePath>script.min.js</RelativePath>
+    </StaticWebAsset>
     <StaticWebAsset Include="$(MSBuildThisFileDirectory)..\staticwebassets\settings_black_24dp.svg">
       <SourceType>Package</SourceType>
       <SourceId>FindRazorSourceFile</SourceId>
