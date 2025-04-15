@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.15" />
-    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.8.0" />
+    <PackageReference Include="FindRazorSourceFile" Version="1.0.0-preview.9.0" />
   </ItemGroup>
 
 </Project>
