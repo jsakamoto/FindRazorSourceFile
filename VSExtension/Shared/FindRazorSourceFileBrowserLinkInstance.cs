@@ -57,11 +57,14 @@ namespace FindRazorSourceFile.VisualStudioExtension
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             var projectName = project.Name;
-            foreach (var item in project.ProjectItems.OfType<ProjectItem>())
+            if (project.ProjectItems != null)
             {
-                foreach (var subItem in EnumProjectItems(projectName, "", item))
+                foreach (var item in project.ProjectItems.OfType<ProjectItem>())
                 {
-                    yield return subItem;
+                    foreach (var subItem in EnumProjectItems(projectName, "", item))
+                    {
+                        yield return subItem;
+                    }
                 }
             }
         }
