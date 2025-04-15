@@ -1,3 +1,6 @@
+v.1.0.0-preview.9.0
+- Improve: Added support for the new Blazor interactive rendering mode introduced in .NET 8 and later.
+
 v.1.0.0-preview.8.0
 - Fix: Ensure compatibility with .NET SDK 9 (Issue #4)
 
