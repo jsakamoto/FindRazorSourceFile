@@ -1,2 +1,5 @@
+v.1.0.1.0
+- Fix: A problem if the current not was not a Project node. (PR #5 by @EngstromJimmy)
+
 v.1.0.0.0
 - 1st release.

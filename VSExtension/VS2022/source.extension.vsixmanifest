@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="de148932-742f-46b8-a8f5-b925ad698540" Version="1.0.0.0" Language="en-US" Publisher="J.Sakamoto" />
+        <Identity Id="de148932-742f-46b8-a8f5-b925ad698540" Version="1.0.1.0" Language="en-US" Publisher="J.Sakamoto" />
         <DisplayName>Find Razor Source File - VS2022 Extension</DisplayName>
-        <Description xml:space="preserve">For Blazor projects, the .razor file that generated the clicked HTML element in a web browser will be opened in a Visual Studio IDE.
-(This extension only works with the project that installed the "FindRazorSourceFile" NuGet package.)</Description>
+        <Description xml:space="preserve">For Blazor projects, this extension opens the .razor file that generates the clicked HTML element in the web browser directly in Visual Studio.
+(This extension only works with projects that have the "FindRazorSourceFile" NuGet package installed.)</Description>
         <MoreInfo>https://github.com/jsakamoto/FindRazorSourceFile</MoreInfo>
         <License>LICENSE.txt</License>
         <ReleaseNotes>RELEASE-NOTES.txt</ReleaseNotes>
