@@ -1,19 +1,27 @@
+const options = {
+    openInVSCode: false
+};
+const FindRazorSourceFileClientOptionsKey = 'razorsource:options';
 const NotFound = 'NotFound';
+const none = 'none';
+const CONTENT_ROOT = './_content/FindRazorSourceFile/';
+const FINDRAZORSOURCEFILE_UI_TAG = "findrazorsourcefile-ui";
+const doc = document;
+let _onceInit = false;
 let uiElements;
 let lastDetectedRazorSource = null;
 let currentScope = null;
 let currentScopeRect = null;
 const razorSourceMap = {};
 let currentMode = 0;
-const options = {
-    openInVSCode: false
-};
-const FindRazorSourceFileClientOptionsKey = 'razorsource:options';
-const CONTENT_ROOT = './_content/FindRazorSourceFile/';
-const doc = document;
 const addEventListener = (target, handlers) => {
     for (let key in handlers) {
         target.addEventListener(key, handlers[key]);
+    }
+};
+const removeEventListener = (target, handlers) => {
+    for (let key in handlers) {
+        target.removeEventListener(key, handlers[key]);
     }
 };
 const stopPropagation = (ev) => ev.stopPropagation();
@@ -44,9 +52,23 @@ const createElement = (tagName, style, attrib, children) => {
     return [element, exposes];
 };
 export const init = () => {
-    customElements.define("findrazorsourcefile-ui", UIRoot);
-    const [uiRoot] = createElement("findrazorsourcefile-ui");
-    doc.body.appendChild(uiRoot);
+    if (_onceInit)
+        return;
+    _onceInit = true;
+    customElements.define(FINDRAZORSOURCEFILE_UI_TAG, UIRoot);
+    const ensureFindRazorSourceFileUI = () => {
+        if (document.body.querySelector(FINDRAZORSOURCEFILE_UI_TAG))
+            return;
+        const [uiRoot] = createElement(FINDRAZORSOURCEFILE_UI_TAG);
+        doc.body.appendChild(uiRoot);
+    };
+    Blazor.addEventListener("enhancedload", ensureFindRazorSourceFileUI);
+    ensureFindRazorSourceFileUI();
+    addEventListener(doc, { keydown: onKeyDown });
+    addEventListener(window, {
+        resize: window_onResize,
+        storage: window_onStorage
+    });
 };
 class UIRoot extends HTMLElement {
     constructor() {
@@ -54,31 +76,43 @@ class UIRoot extends HTMLElement {
     }
     connectedCallback() {
         const shadow = this.attachShadow({ mode: "open" });
-        uiElements = createUIElements(shadow);
+        const ui = createUIElements(shadow);
+        uiElements = ui;
         updateUIeffects(1);
-        addEventListener(uiElements.overlay, {
-            mousemove: (ev) => overlay_onMouseMove(ev),
-            click: (ev) => overlay_onClick(ev)
+        addEventListener(ui.overlay, {
+            mousemove: overlay_onMouseMove,
+            click: overlay_onClick
         });
-        addEventListener(uiElements.sourceNameTip, {
+        addEventListener(ui.sourceNameTip, {
             mousemove: stopPropagation,
-            click: (ev) => sourceNameTip_onClick(ev)
+            click: sourceNameTip_onClick
         });
-        addEventListener(uiElements.settingsButton, { click: (ev) => settingsButton_onClick(ev) });
-        addEventListener(uiElements.settingsForm, { click: stopPropagation });
-        addEventListener(uiElements.settingsOpenInVSCode, { click: (ev) => settingsOpenInVSCode_onClick(ev) });
-        addEventListener(doc, { keydown: (ev) => onKeyDown(ev) });
-        addEventListener(window, {
-            resize: (ev) => window_onResize(ev),
-            storage: (ev) => window_onStorage(ev)
-        });
+        addEventListener(ui.settingsButton, { click: settingsButton_onClick });
+        addEventListener(ui.settingsForm, { click: stopPropagation });
+        addEventListener(ui.settingsOpenInVSCode, { click: settingsOpenInVSCode_onClick });
         loadOptionsFromLocalStorage();
+        this.dispose = () => {
+            removeEventListener(ui.overlay, {
+                mousemove: overlay_onMouseMove,
+                click: overlay_onClick
+            });
+            removeEventListener(ui.sourceNameTip, {
+                mousemove: stopPropagation,
+                click: sourceNameTip_onClick
+            });
+            removeEventListener(ui.settingsButton, { click: settingsButton_onClick });
+            removeEventListener(ui.settingsForm, { click: stopPropagation });
+            removeEventListener(ui.settingsOpenInVSCode, { click: settingsOpenInVSCode_onClick });
+        };
+    }
+    disconnectedCallback() {
+        this.dispose?.();
     }
 }
 const createUIElements = (parent) => {
     const [overlay, exposes] = createElement('div', {
         position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
-        backgroundColor: 'transparent', borderStyle: 'solid', display: 'none', opacity: '0',
+        backgroundColor: 'transparent', borderStyle: 'solid', display: none, opacity: '0',
         transition: 'border 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s linear'
     }, null, [
         {
@@ -86,7 +120,7 @@ const createUIElements = (parent) => {
                 position: 'absolute', top: '4px', left: '4px', padding: '2px 6px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
                 backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
-                whiteSpace: 'nowrap', display: 'none', transition: 'opacity 0.2s ease-out'
+                whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out'
             }, null, [
                 createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPWebApplication_16x.svg' }),
                 { sourceNameTipProjectName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) },
@@ -99,7 +133,7 @@ const createUIElements = (parent) => {
             settingsButton: createElement('button', {
                 position: 'fixed', bottom: '8px', right: '8px', height: '32px', paddingLeft: '30px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
-                border: 'none', backgroundColor: '#fff', borderRadius: '64px', outline: 'none',
+                border: none, backgroundColor: '#fff', borderRadius: '64px', outline: none,
                 backgroundImage: `url('${CONTENT_ROOT}settings_black_24dp.svg')`,
                 backgroundRepeat: 'no-repeat', backgroundPosition: '5px center'
             }, { title: 'Find Razor Source File - Settings', textContent: 'Find Razor Source File' })
@@ -108,7 +142,7 @@ const createUIElements = (parent) => {
             settingsForm: createElement('div', {
                 position: 'fixed', bottom: '0', right: '8px', padding: '8px 12px',
                 border: '#ccc', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
-                opacity: '0', transition: 'ease-out all 0.2s', pointerEvents: 'none'
+                opacity: '0', transition: 'ease-out all 0.2s', pointerEvents: none
             }, null, [
                 createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' }, null, [
                     { settingsOpenInVSCode: createElement('input', { margin: '0 8px 0 0', padding: '0', verticalAlign: 'middle' }, { type: 'checkbox' }) },
@@ -155,13 +189,13 @@ const onKeyDown = (ev) => {
         ev.preventDefault();
         currentMode = pressedCtrlShiftF ? 0 : (currentMode === 2 ? 1 : 0);
         updateUIeffects(1);
-        uiElements.sourceNameTip.style.display = 'none';
+        uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
         hideSettingsForm();
         if (currentMode === 0) {
             uiElements.overlay.style.opacity = '0';
             setTimeout(() => { if (currentMode === 0)
-                uiElements.overlay.style.display = 'none'; }, 200);
+                uiElements.overlay.style.display = none; }, 200);
         }
     }
 };
@@ -204,7 +238,7 @@ const settingsButton_onClick = (ev) => {
         hideSettingsForm();
 };
 const showSettingsForm = () => Object.assign(uiElements.settingsForm.style, { opacity: '1', bottom: '48px', pointerEvents: 'unset' });
-const hideSettingsForm = () => Object.assign(uiElements.settingsForm.style, { opacity: '0', bottom: '0', pointerEvents: 'none' });
+const hideSettingsForm = () => Object.assign(uiElements.settingsForm.style, { opacity: '0', bottom: '0', pointerEvents: none });
 const isHiddenSettingsForm = () => uiElements.settingsForm.style.opacity === '0';
 const settingsOpenInVSCode_onClick = (ev) => {
     stopPropagation(ev);
@@ -278,7 +312,7 @@ const getRazorSourceName = async (scope) => {
 };
 const displayScopeMask = (scopeRect, razorSourceName) => {
     if (scopeRect === null || razorSourceName === null || razorSourceName === NotFound) {
-        uiElements.sourceNameTip.style.display = 'none';
+        uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
         return;
     }

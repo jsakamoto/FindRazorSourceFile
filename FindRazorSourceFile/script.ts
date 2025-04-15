@@ -14,7 +14,6 @@ interface RazorSourceNameType {
     fullPath: string;
 }
 type RazorSourceName = RazorSourceNameType | 'NotFound';
-const NotFound = 'NotFound';
 
 const enum Mode {
     Inactive,
@@ -37,14 +36,6 @@ interface Rect {
     right: number;
 }
 
-let uiElements: UIElements;
-let lastDetectedRazorSource: RazorSourceName | null = null;
-let currentScope: string | null = null;
-let currentScopeRect: Rect | null = null;
-
-const razorSourceMap: { [key: string]: RazorSourceName | undefined } = {};
-let currentMode: Mode = Mode.Inactive;
-
 interface FindRazorSourceFileClientOptions {
     openInVSCode: boolean;
 }
@@ -57,9 +48,34 @@ type HTMLElementMap = { [key: string]: HTMLElement };
 
 type CreateElementResult = [HTMLElement, HTMLElementMap];
 
+// Constants
+
+const NotFound = 'NotFound';
+
+const none = 'none';
+
 const CONTENT_ROOT = './_content/FindRazorSourceFile/';
 
+const FINDRAZORSOURCEFILE_UI_TAG = "findrazorsourcefile-ui";
+
 const doc = document;
+
+declare const Blazor: any; // Blazor is defined in the parent page
+
+// Global State
+let _onceInit = false;
+
+let uiElements: UIElements;
+
+let lastDetectedRazorSource: RazorSourceName | null = null;
+
+let currentScope: string | null = null;
+
+let currentScopeRect: Rect | null = null;
+
+const razorSourceMap: { [key: string]: RazorSourceName | undefined } = {};
+
+let currentMode: Mode = Mode.Inactive;
 
 // Utility functions
 
@@ -67,6 +83,13 @@ const doc = document;
 const addEventListener = (target: HTMLElement | Document | Window, handlers: { [key: string]: any }) => {
     for (let key in handlers) {
         target.addEventListener(key, handlers[key]);
+    }
+}
+
+/** Remove event listeners from a target element */
+const removeEventListener = (target: HTMLElement | Document | Window, handlers: { [key: string]: any }) => {
+    for (let key in handlers) {
+        target.removeEventListener(key, handlers[key]);
     }
 }
 
@@ -108,12 +131,32 @@ const createElement = (tagName: string, style?: object | null, attrib?: object |
  * Enable the Razor Source File UI.
  */
 export const init = () => {
-    customElements.define("findrazorsourcefile-ui", UIRoot);
-    const [uiRoot] = createElement("findrazorsourcefile-ui");
-    doc.body.appendChild(uiRoot);
+
+    if (_onceInit) return;
+    _onceInit = true;
+
+    customElements.define(FINDRAZORSOURCEFILE_UI_TAG, UIRoot);
+
+    const ensureFindRazorSourceFileUI = () => {
+        if (document.body.querySelector(FINDRAZORSOURCEFILE_UI_TAG)) return;
+        const [uiRoot] = createElement(FINDRAZORSOURCEFILE_UI_TAG);
+        doc.body.appendChild(uiRoot);
+    }
+
+    Blazor.addEventListener("enhancedload", ensureFindRazorSourceFileUI);
+    ensureFindRazorSourceFileUI();
+
+    addEventListener(doc, { keydown: onKeyDown });
+
+    addEventListener(window, {
+        resize: window_onResize,
+        storage: window_onStorage
+    });
 }
 
 class UIRoot extends HTMLElement {
+
+    private dispose: (() => void) | undefined;
 
     constructor() {
         super();
@@ -121,32 +164,46 @@ class UIRoot extends HTMLElement {
 
     connectedCallback() {
         const shadow = this.attachShadow({ mode: "open" });
+        const ui = createUIElements(shadow);
+        uiElements = ui;
 
-        uiElements = createUIElements(shadow);
         updateUIeffects(Mode.Active);
 
-        addEventListener(uiElements.overlay, {
-            mousemove: (ev: MouseEvent) => overlay_onMouseMove(ev),
-            click: (ev: MouseEvent) => overlay_onClick(ev)
+        addEventListener(ui.overlay, {
+            mousemove: overlay_onMouseMove,
+            click: overlay_onClick
         });
 
-        addEventListener(uiElements.sourceNameTip, {
+        addEventListener(ui.sourceNameTip, {
             mousemove: stopPropagation,
-            click: (ev: MouseEvent) => sourceNameTip_onClick(ev)
+            click: sourceNameTip_onClick
         });
 
-        addEventListener(uiElements.settingsButton, { click: (ev: MouseEvent) => settingsButton_onClick(ev) });
-        addEventListener(uiElements.settingsForm, { click: stopPropagation });
-        addEventListener(uiElements.settingsOpenInVSCode, { click: (ev: MouseEvent) => settingsOpenInVSCode_onClick(ev) });
-
-        addEventListener(doc, { keydown: (ev: KeyboardEvent) => onKeyDown(ev) });
-
-        addEventListener(window, {
-            resize: (ev: UIEvent) => window_onResize(ev),
-            storage: (ev: StorageEvent) => window_onStorage(ev)
-        });
+        addEventListener(ui.settingsButton, { click: settingsButton_onClick });
+        addEventListener(ui.settingsForm, { click: stopPropagation });
+        addEventListener(ui.settingsOpenInVSCode, { click: settingsOpenInVSCode_onClick });
 
         loadOptionsFromLocalStorage();
+
+        this.dispose = () => {
+            removeEventListener(ui.overlay, {
+                mousemove: overlay_onMouseMove,
+                click: overlay_onClick
+            });
+
+            removeEventListener(ui.sourceNameTip, {
+                mousemove: stopPropagation,
+                click: sourceNameTip_onClick
+            });
+
+            removeEventListener(ui.settingsButton, { click: settingsButton_onClick });
+            removeEventListener(ui.settingsForm, { click: stopPropagation });
+            removeEventListener(ui.settingsOpenInVSCode, { click: settingsOpenInVSCode_onClick });
+        };
+    }
+
+    disconnectedCallback() {
+        this.dispose?.();
     }
 }
 
@@ -155,7 +212,7 @@ const createUIElements = (parent: ShadowRoot): UIElements => {
 
     const [overlay, exposes] = createElement('div', {
         position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
-        backgroundColor: 'transparent', borderStyle: 'solid', display: 'none', opacity: '0',
+        backgroundColor: 'transparent', borderStyle: 'solid', display: none, opacity: '0',
         transition: 'border 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s linear'
     }, null, [
         {
@@ -163,7 +220,7 @@ const createUIElements = (parent: ShadowRoot): UIElements => {
                 position: 'absolute', top: '4px', left: '4px', padding: '2px 6px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
                 backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
-                whiteSpace: 'nowrap', display: 'none', transition: 'opacity 0.2s ease-out'
+                whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out'
             }, null, [
                 createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPWebApplication_16x.svg' }),
                 { sourceNameTipProjectName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) },
@@ -176,7 +233,7 @@ const createUIElements = (parent: ShadowRoot): UIElements => {
             settingsButton: createElement('button', {
                 position: 'fixed', bottom: '8px', right: '8px', height: '32px', paddingLeft: '30px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
-                border: 'none', backgroundColor: '#fff', borderRadius: '64px', outline: 'none',
+                border: none, backgroundColor: '#fff', borderRadius: '64px', outline: none,
                 backgroundImage: `url('${CONTENT_ROOT}settings_black_24dp.svg')`,
                 backgroundRepeat: 'no-repeat', backgroundPosition: '5px center'
             }, { title: 'Find Razor Source File - Settings', textContent: 'Find Razor Source File' })
@@ -185,7 +242,7 @@ const createUIElements = (parent: ShadowRoot): UIElements => {
             settingsForm: createElement('div', {
                 position: 'fixed', bottom: '0', right: '8px', padding: '8px 12px',
                 border: '#ccc', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
-                opacity: '0', transition: 'ease-out all 0.2s', pointerEvents: 'none'
+                opacity: '0', transition: 'ease-out all 0.2s', pointerEvents: none
             }, null, [
                 createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' }, null, [
                     { settingsOpenInVSCode: createElement('input', { margin: '0 8px 0 0', padding: '0', verticalAlign: 'middle' }, { type: 'checkbox' }) },
@@ -238,13 +295,13 @@ const onKeyDown = (ev: KeyboardEvent): void => {
 
         currentMode = pressedCtrlShiftF ? Mode.Inactive : (currentMode === Mode.Locked ? Mode.Active : Mode.Inactive);
         updateUIeffects(Mode.Active);
-        uiElements.sourceNameTip.style.display = 'none';
+        uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
         hideSettingsForm();
 
         if (currentMode === Mode.Inactive) {
             uiElements.overlay.style.opacity = '0';
-            setTimeout(() => { if (currentMode === Mode.Inactive) uiElements.overlay.style.display = 'none'; }, 200);
+            setTimeout(() => { if (currentMode === Mode.Inactive) uiElements.overlay.style.display = none; }, 200);
         }
     }
 }
@@ -292,7 +349,7 @@ const settingsButton_onClick = (ev: MouseEvent): void => {
 
 const showSettingsForm = (): CSSStyleDeclaration => Object.assign(uiElements.settingsForm.style, { opacity: '1', bottom: '48px', pointerEvents: 'unset' });
 
-const hideSettingsForm = (): CSSStyleDeclaration => Object.assign(uiElements.settingsForm.style, { opacity: '0', bottom: '0', pointerEvents: 'none' });
+const hideSettingsForm = (): CSSStyleDeclaration => Object.assign(uiElements.settingsForm.style, { opacity: '0', bottom: '0', pointerEvents: none });
 
 const isHiddenSettingsForm = (): boolean => uiElements.settingsForm.style.opacity === '0';
 
@@ -383,7 +440,7 @@ const getRazorSourceName = async (scope: string | null): Promise<RazorSourceName
 
 const displayScopeMask = (scopeRect: Rect | null, razorSourceName: RazorSourceName | null): void => {
     if (scopeRect === null || razorSourceName === null || razorSourceName === NotFound) {
-        uiElements.sourceNameTip.style.display = 'none';
+        uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
         return;
     }
