@@ -2,5 +2,6 @@
   <PropertyGroup>
     <EnableFindRazorSourceFile Condition=" '$(Configuration)' != 'Release' AND '$(EnableFindRazorSourceFile)' == '' " >true</EnableFindRazorSourceFile>
   </PropertyGroup>
-  <Import Project="Microsoft.AspNetCore.StaticWebAssets.props" />
+  <Import Project="Microsoft.AspNetCore.StaticWebAssetEndpoints.props" Condition=" '$(EnableFindRazorSourceFile)' == 'true' " />
+  <Import Project="Microsoft.AspNetCore.StaticWebAssets.props" Condition=" '$(EnableFindRazorSourceFile)' == 'true' " />
 </Project>

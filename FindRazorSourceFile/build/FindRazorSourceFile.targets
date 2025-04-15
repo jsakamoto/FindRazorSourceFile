@@ -20,6 +20,7 @@
       <Items ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
       <!-- Output parameters -->
       <FingerprintedItems ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+      <EndpointItems ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
     </ParameterGroup>
     <Task>
       <Using Namespace="System" />
@@ -52,7 +53,7 @@ static string ToBase36(byte[] hash)
 }
 
 var fingerprintedItems = new List<ITaskItem>();
-var projectEndpoints = new List<ITaskItem>();
+var endpointItems = new List<ITaskItem>();
 foreach (var item in this.Items)
 {
     var fingerprintedItem = new TaskItem(item.ItemSpec);
@@ -68,9 +69,22 @@ foreach (var item in this.Items)
     fingerprintedItem.SetMetadata("Fingerprint", fingerprint);
 
     fingerprintedItems.Add(fingerprintedItem);
+
+
+    var fileInfo = new System.IO.FileInfo(item.ItemSpec);
+    var resHeaderFormat = "[{{\"Name\":\"Accept-Ranges\",\"Value\":\"bytes\"}},{{\"Name\":\"Cache-Control\",\"Value\":\"{0}\"}},{{\"Name\":\"Content-Length\",\"Value\":\"{1}\"}},{{\"Name\":\"Content-Type\",\"Value\":\"text/css\"}},{{\"Name\":\"ETag\",\"Value\":\"\\u0022{2}\\u0022\"}},{{\"Name\":\"Last-Modified\",\"Value\":\"{3:R}\"}}]";
+    var encodedIntegrity = integrity.Replace("+", "\\u002B").Replace("/", "\\u002F");
+
+    var endpoint = new TaskItem(item.ItemSpec);
+    endpoint.SetMetadata("AssetFile", item.ItemSpec);
+    endpoint.SetMetadata("Selectors", "[]");
+    endpoint.SetMetadata("ResponseHeaders", string.Format(resHeaderFormat, "no-cache", fileInfo.Length, integrity, fileInfo.LastWriteTimeUtc));
+    endpoint.SetMetadata("EndpointProperties", string.Format("[{{\"Name\":\"integrity\",\"Value\":\"sha256-{0}\"}}]", encodedIntegrity));
+    endpointItems.Add(endpoint);
 }
     
 this.FingerprintedItems = fingerprintedItems.ToArray();
+this.EndpointItems = endpointItems.ToArray();
 
         ]]>
       </Code>
@@ -120,6 +134,7 @@ this.FingerprintedItems = fingerprintedItems.ToArray();
 
     <_FRSF_ComputeFingerprint Items="@(_RazorSourceMapFiles)">
       <Output TaskParameter="FingerprintedItems" ItemName="_FingerprintedRazorSourceMapFiles" />
+      <Output TaskParameter="EndpointItems" ItemName="_RazorSourceMapFileEndpoints" />
     </_FRSF_ComputeFingerprint>
 
     <ItemGroup>
@@ -136,6 +151,10 @@ this.FingerprintedItems = fingerprintedItems.ToArray();
         <AssetRole>Primary</AssetRole>
         <AssetTraitName>RazorSourceMapFiles</AssetTraitName>
       </StaticWebAsset>
+
+      <StaticWebAssetEndpoint Include="@(_RazorSourceMapFileEndpoints)" />
+      <_RazorSourceMapFileEndpoints Remove="@(_RazorSourceMapFileEndpoints)" />
+
     </ItemGroup>
 
   </Target>

@@ -16,10 +16,13 @@
     <PackageReleaseNotes>(Please write the package release notes in "RELEASE NOTES.txt".)</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/jsakamoto/FindRazorSourceFile</PackageProjectUrl>
     <PackageOutputPath>..\_dist\</PackageOutputPath>
+    <PackageIcon>nupkg-icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Set this to false because assemblies should not reference this assembly directly, (except for tests, of course). -->
     <IsProjectReferenceProvider>false</IsProjectReferenceProvider>
-  
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
   </PropertyGroup>
 
@@ -38,11 +41,18 @@
 
   <!-- Pack settings -->
   <PropertyGroup>
-    <NoPackageAnalysis>true</NoPackageAnalysis>
-    <NuspecFile>FindRazorSourceFile.nuspec</NuspecFile>
+    <StaticWebAssetsDisableProjectBuildPropsFileGeneration>true</StaticWebAssetsDisableProjectBuildPropsFileGeneration>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="build\*" />
+    <Content Remove="build\*" />
+    <None Remove="build\*" />
+    <None Include="build\*" Pack="true" PackagePath="build/" />
+    <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
+    <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
-  <Target Name="CustomPack" BeforeTargets="GenerateNuspec">
+  <Target Name="PreparePackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec">
     <ReadLinesFromFile File="RELEASE-NOTES.txt">
       <Output TaskParameter="Lines" ItemName="ReleaseNoteLines" />
     </ReadLinesFromFile>
@@ -52,18 +62,6 @@
       <PackageReleaseNotes>$(PackageReleaseNotes.Replace('&gt;','&amp;gt;'))</PackageReleaseNotes>
       <PackageReleaseNotes>$([System.Text.RegularExpressions.Regex]::Match($(PackageReleaseNotes), "^(v\.[\d\.]+.+?)v\.[\d\.]+", System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value)</PackageReleaseNotes>
       <PackageReleaseNotes>$(PackageReleaseNotes)%0aTo see all the change logs, please visit the following URL.%0a- https://github.com/jsakamoto/FindRazorSourceFile/blob/master/FindRazorSourceFile/RELEASE-NOTES.txt</PackageReleaseNotes>
-    </PropertyGroup>
-    <PropertyGroup>
-      <NuspecProperties>version=$(Version);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>id=$(PackageId);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>authors=$(Authors);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>owners=$(Owners);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>projectUrl=$(PackageProjectUrl);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>description=$(Description);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>copyright=$(Copyright);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>licenseexpression=$(PackageLicenseExpression);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>tags=$(PackageTags);$(NuspecProperties)</NuspecProperties>
-      <NuspecProperties>releaseNotes=$(PackageReleaseNotes);$(NuspecProperties)</NuspecProperties>
     </PropertyGroup>
   </Target>
 
