@@ -1,3 +1,6 @@
+v.1.0.0-preview.10.0
+- Fix: misspelling in the README (PR #6 contributed by @AdmiralSnyder)
+
 v.1.0.0-preview.9.0
 - Improve: Added support for the new Blazor interactive rendering mode introduced in .NET 8 and later.
 
