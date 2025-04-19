@@ -2,5 +2,5 @@
 
 public interface IWeatherForecastService
 {
-    Task<WeatherForecast[]> GetForecastAsync();
+    Task<WeatherForecast[]?> GetForecastAsync();
 }

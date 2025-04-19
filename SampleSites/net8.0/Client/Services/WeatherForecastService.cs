@@ -12,7 +12,7 @@ public class WeatherForecastService : IWeatherForecastService
         this.HttpClient = httpClient;
     }
 
-    public Task<WeatherForecast[]> GetForecastAsync()
+    public Task<WeatherForecast[]?> GetForecastAsync()
     {
         return this.HttpClient.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
     }

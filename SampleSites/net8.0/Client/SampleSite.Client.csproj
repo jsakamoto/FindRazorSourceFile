@@ -2,8 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <BlazorEnableCompression>false</BlazorEnableCompression>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+    <!--<BlazorEnableCompression>false</BlazorEnableCompression>-->
   </PropertyGroup>
 
   <ItemGroup>
