@@ -1,0 +1,17 @@
+<span @attributes="AdditionalAttributes" class="@this.GetCssClasses()" aria-hidden="true"></span>
+
+@code
+{
+    [Parameter]
+    public IconType Type { get; set; } = IconType.None;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string GetCssClasses()
+    {
+        var baseCssClasses = $"oi oi-{this.Type.ToIconName()}";
+        var userCssClass = this.AdditionalAttributes?.TryGetValue("class", out var val) == true ? val?.ToString() ?? "" : ""; ;
+        return (baseCssClasses + " " + userCssClass.Trim()).Trim();
+    }
+}

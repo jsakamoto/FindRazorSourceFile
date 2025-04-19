@@ -1,9 +1,7 @@
 ﻿@page "/fetchdata"
 @inject IWeatherForecastService WeatherForecastService
 
-<h1>Weather forecast</h1>
-
-<p>This component demonstrates fetching data from the server.</p>
+<TitleHeader Title="Weather forecast" Description="This component demonstrates fetching data from the server." />
 
 @if (forecasts == null)
 {
