@@ -12,7 +12,7 @@ This package makes your Blazor apps display the source .razor file name that gen
 
 ## 1. Installation
 
-### 1-a. for Blazor WebAssembly projects
+### 1-a. For Blazor WebAssembly projects
 
 1. Add **the `FindRazorSourceFile.WebAssembly` NuGet package** to your Blazor WebAssembly project.
 
@@ -35,7 +35,7 @@ builder.UseFindRazorSourceFile(); // 👈 Add this line.
 > [!NOTE]  
 > The `UseFindRazorSourceFile()` method will work only when the target configuration is not "Release". That means any resources from "FindRazorSourceFile" will not be loaded in the app after it is published with trimming. So, you don't need to worry about increasing the app size due to linking this library in the release environment. If you need to suppress the loading resources of this library in other configurations, please set the `EnableFindRazorSourceFile` property to `false` in the project file. For example, `<EnableFindRazorSourceFile>false</EnableFindRazorSourceFile>`.
 
-### 1-b. for Blazor Server projects
+### 1-b. For Blazor Server projects
 
 1. Add **the `FindRazorSourceFile.Server` NuGet package** to your Blazor Server project.
 
@@ -52,21 +52,49 @@ using FindRazorSourceFile.Server; // 👈 Open this namespace, and...
 ...
 var builder = WebApplication.CreateBuilder(args);
 ...
-if (builder.Environment.IsDevelopment())
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
 {
     ...
-    builder.UseFindRazorSourceFile(); // 👈 Add this line.
+    app.UseFindRazorSourceFile(); // 👈 Add this line.
 }
 ...
 ```
 
-### 1-c. for Blazor components library projects
+### 1-c. For Blazor components library projects (Razor Class Library)
 
-What you have to do is just adding **the `FindRazorSourceFile` NuGet package** to the library project.
+If your solution contains a Razor Class Library (RCL) project and you want to enable "find razor source file" for its components, **add the `FindRazorSourceFile` NuGet package** to the RCL project as well.
 
 ```shell
 > dotnet add package FindRazorSourceFile
 ```
+
+This ensures that CSS scope IDs are generated for all `.razor` files in the RCL, which is required for the detection feature to work.
+
+
+### 1-d. For Blazor Web Application projects created with .NET 8 or later (new project template)
+
+If you created your Blazor app using the .NET 8 or later "Blazor Web App" project template, please follow these steps:
+
+- **Server-side project**:  
+  Add the `FindRazorSourceFile.Server` NuGet package and configure `UseFindRazorSourceFile()` in your server project's `Program.cs` as described above.
+
+- **Client-side project** (if present):  
+  If your project uses Interactive Render Mode with "WebAssembly" or "Auto", you will also have a client project.  
+  In this case, add the `FindRazorSourceFile.WebAssembly` NuGet package and configure `UseFindRazorSourceFile()` in the client project's `Program.cs` as described above.
+
+- **Razor Class Library** (if present):  
+  If your solution includes a Razor Class Library, add the `FindRazorSourceFile` NuGet package to the RCL project as described above.
+
+> **Summary Table**
+>
+> | Project Type                | Required Package(s)                  | Required Setup in Program.cs         |
+> |-----------------------------|--------------------------------------|--------------------------------------|
+> | Server (host) project       | FindRazorSourceFile.Server           | UseFindRazorSourceFile()             |
+> | Client (WASM/Auto) project  | FindRazorSourceFile.WebAssembly      | UseFindRazorSourceFile()             |
+> | Razor Class Library (RCL)   | FindRazorSourceFile                  | (no code, just add package)          |
+
 
 ## 2. Usage
 
