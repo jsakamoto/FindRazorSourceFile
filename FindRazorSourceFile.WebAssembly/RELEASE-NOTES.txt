@@ -1,3 +1,6 @@
+v.1.0.0-preview.11.0
+- Improve the precision of detecting components' boundaries (Issue #7)
+
 v.1.0.0-preview.10.0
 - Fix: misspelling in the README (PR #6 contributed by @AdmiralSnyder)
 

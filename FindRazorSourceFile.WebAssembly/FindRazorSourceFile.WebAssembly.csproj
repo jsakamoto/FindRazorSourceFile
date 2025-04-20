@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
 
-    <Version>1.0.0-preview.10.0</Version>
+    <Version>1.0.0-preview.11.0</Version>
     <Description>This package makes your Blazor apps display the source .razor file name that generated the HTML element under the mouse cursor when entering the `Ctrl` + `Shift` + `F` hotkeys.</Description>
     <Authors>J.Sakamoto</Authors>
     <Owners>J.Sakamoto</Owners>
