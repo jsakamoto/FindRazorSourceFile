@@ -48,11 +48,17 @@ type HTMLElementMap = { [key: string]: HTMLElement };
 
 type CreateElementResult = [HTMLElement, HTMLElementMap];
 
+type NodeWithLogicalNodeProps = Node & {
+    [key: symbol]: NodeWithLogicalNodeProps | NodeWithLogicalNodeProps[] | undefined;
+}
+
 // Constants
 
 const NotFound = 'NotFound';
 
 const none = 'none';
+
+const NULL = null;
 
 const CONTENT_ROOT = './_content/FindRazorSourceFile/';
 
@@ -60,24 +66,35 @@ const FINDRAZORSOURCEFILE_UI_TAG = "findrazorsourcefile-ui";
 
 const doc = document;
 
+const COMMENT_NODE = Node.COMMENT_NODE;
+
 declare const Blazor: any; // Blazor is defined in the parent page
 
 // Global State
+
 let _onceInit = false;
+
+let logicalNodeParentKey = NULL as null | symbol;
+
+let logicalNodeChildrenKey = NULL as null | symbol;
 
 let uiElements: UIElements;
 
-let lastDetectedRazorSource: RazorSourceName | null = null;
+let lastDetectedRazorSource: RazorSourceName | null = NULL;
 
-let currentScope: string | null = null;
+let currentScope: string | null = NULL;
 
-let currentScopeRect: Rect | null = null;
+let currentScopeTopElement: NodeWithLogicalNodeProps | null = NULL;
+
+let currentScopeRect: Rect | null = NULL;
 
 const razorSourceMap: { [key: string]: RazorSourceName | undefined } = {};
 
 let currentMode: Mode = Mode.Inactive;
 
 // Utility functions
+
+const isArray = (obj: unknown): obj is any[] => Array.isArray(obj);
 
 /** Add event listeners to a target element */
 const addEventListener = (target: HTMLElement | Document | Window, handlers: { [key: string]: any }) => {
@@ -113,7 +130,7 @@ const createElement = (tagName: string, style?: object | null, attrib?: object |
     }
 
     children?.forEach(child => {
-        if (Array.isArray(child)) {
+        if (isArray(child)) {
             appendChild(child);
         }
         else {
@@ -135,6 +152,8 @@ export const init = () => {
     if (_onceInit) return;
     _onceInit = true;
 
+    getLogicalNodePropKeys();
+
     customElements.define(FINDRAZORSOURCEFILE_UI_TAG, UIRoot);
 
     const ensureFindRazorSourceFileUI = () => {
@@ -152,6 +171,22 @@ export const init = () => {
         resize: window_onResize,
         storage: window_onStorage
     });
+}
+
+const getLogicalNodePropKeys = () => {
+    const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
+    while (commentWalker.nextNode()) {
+        const commentNode = commentWalker.currentNode as Comment;
+        if (commentNode.textContent !== "!") continue;
+
+        const symbolProps = Object.getOwnPropertySymbols(commentNode);
+        symbolProps.forEach(prop => {
+            const propValue = (commentNode as any)[prop];
+            if (!logicalNodeParentKey && typeof (propValue.nodeType) !== undefined) logicalNodeParentKey = prop;
+            if (!logicalNodeChildrenKey && isArray(propValue)) logicalNodeChildrenKey = prop;
+        });
+        if (logicalNodeParentKey && logicalNodeChildrenKey) break;
+    }
 }
 
 class UIRoot extends HTMLElement {
@@ -214,14 +249,14 @@ const createUIElements = (parent: ShadowRoot): UIElements => {
         position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
         backgroundColor: 'transparent', borderStyle: 'solid', display: none, opacity: '0',
         transition: 'border 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s linear'
-    }, null, [
+    }, NULL, [
         {
             sourceNameTip: createElement('div', {
                 position: 'absolute', top: '4px', left: '4px', padding: '2px 6px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
                 backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
                 whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out'
-            }, null, [
+            }, NULL, [
                 createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPWebApplication_16x.svg' }),
                 { sourceNameTipProjectName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) },
                 createElement('span', { verticalAlign: 'middle' }, { textContent: ' | ' }),
@@ -243,8 +278,8 @@ const createUIElements = (parent: ShadowRoot): UIElements => {
                 position: 'fixed', bottom: '0', right: '8px', padding: '8px 12px',
                 border: '#ccc', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
                 opacity: '0', transition: 'ease-out all 0.2s', pointerEvents: none
-            }, null, [
-                createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' }, null, [
+            }, NULL, [
+                createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' }, NULL, [
                     { settingsOpenInVSCode: createElement('input', { margin: '0 8px 0 0', padding: '0', verticalAlign: 'middle' }, { type: 'checkbox' }) },
                     createElement('span', { verticalAlign: 'middle' }, { textContent: 'Open the .razor file of the clicked component in ' }),
                     createElement('img', { verticalAlign: 'middle', width: '18px' }, { src: CONTENT_ROOT + 'vscode.svg' }),
@@ -269,6 +304,11 @@ const updateUIeffects = (mode: Mode.Active | Mode.Locked): void => {
     uiElements.sourceNameTip.style.opacity = sourcetipOpacity;
 }
 
+const setSourceNameTip = (projectName: string, itemName: string): void => {
+    uiElements.sourceNameTipProjectName.textContent = projectName;
+    uiElements.sourceNameTipItemName.textContent = itemName;
+}
+
 const onKeyDown = (ev: KeyboardEvent): void => {
     const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
     const pressedEscape = (ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey);
@@ -284,10 +324,10 @@ const onKeyDown = (ev: KeyboardEvent): void => {
         });
         hideSettingsForm();
         setTimeout(() => { if (currentMode === Mode.Active || currentMode === Mode.Locked) uiElements.overlay.style.opacity = '1'; }, 1);
-        uiElements.sourceNameTipProjectName.textContent = '';
-        uiElements.sourceNameTipItemName.textContent = '';
-        currentScope = null;
-        currentScopeRect = null;
+        setSourceNameTip("", "");
+        currentScope = NULL;
+        currentScopeTopElement = NULL;
+        currentScopeRect = NULL;
     }
     else if ((currentMode === Mode.Active || currentMode === Mode.Locked) && (pressedEscape || pressedCtrlShiftF)) {
         stopPropagation(ev);
@@ -314,7 +354,7 @@ const overlay_onMouseMove = async (ev: MouseEvent): Promise<void> => {
 const overlay_onClick = (ev: MouseEvent): void => {
     hideSettingsForm();
     if (currentMode === Mode.Active) {
-        if (currentScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
+        if (currentScope && lastDetectedRazorSource && lastDetectedRazorSource !== NotFound) {
             currentMode = Mode.Locked;
             updateUIeffects(Mode.Locked);
             const event = new Event(RazorSourceEventNames.LockIn, { bubbles: false, cancelable: false }) as RazorSourceEvent;
@@ -360,43 +400,48 @@ const settingsOpenInVSCode_onClick = (ev: MouseEvent): void => {
 }
 
 const detectTargetAndDisplayIt = async (ev: MouseEvent): Promise<void> => {
-    const result = detectScope(ev);
+    const result = await detectScope(ev);
     if (result.scopeHasChanged === false) return;
     lastDetectedRazorSource = await getRazorSourceName(result.scope);
     displayScopeMask(result.scopeRect, lastDetectedRazorSource);
 }
 
-const detectScope = (ev: MouseEvent): { scope: string | null, scopeRect: Rect | null, scopeHasChanged: boolean } => {
+const detectScope = async (ev: MouseEvent): Promise<{ scope: string | null, scopeRect: Rect | null, scopeHasChanged: boolean }> => {
     uiElements.overlay.style.visibility = 'hidden';
     const hovered = doc.elementFromPoint(ev.clientX, ev.clientY);
     uiElements.overlay.style.visibility = 'visible';
 
-    let scope: string | null = null;
-    for (var nearestTarget = hovered; nearestTarget !== null; nearestTarget = nearestTarget.parentElement) {
-        scope = getScope(nearestTarget);
-        if (scope !== null) break;
+    let scope: string | null = NULL;
+    let topElement: NodeWithLogicalNodeProps | null = NULL;
+    for (let element = hovered; element; element = element.parentElement) {
+        if (!scope) {
+            scope = await getScope(element);
+            if (scope) topElement = element as any as NodeWithLogicalNodeProps;
+        }
+        else {
+            if (scope === await getScope(element)) topElement = element as any as NodeWithLogicalNodeProps;
+        }
     }
-    let nextScopeRect: Rect | null = null;
+
+    let nextScopeRect: Rect | null = NULL;
 
     // if scope not found, re-check the mouse cursor is in current rect, and if it's true then keep current scope.
-    if (scope === null) {
-        if (currentScopeRect !== null) {
-            if (currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
-                currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom
-            ) {
-                return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
-            }
+    if (!scope || !topElement) {
+        if (currentScopeRect &&
+            currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
+            currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
+            return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
         }
     }
 
     // else, next scope is found and current scope is also available...
-    else if (currentScope !== null && currentScope !== scope && currentScopeRect !== null) {
+    else if (currentScope && currentScope !== scope && currentScopeRect) {
         // ...and the mouse cursor is still in the current rect...
         if (currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
             currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom
         ) {
             // if the current rect is included the next rect, then keep current scope.
-            nextScopeRect = getScopeRect(scope);
+            nextScopeRect = getScopeRect(topElement);
             if (nextScopeRect.left < currentScopeRect.left &&
                 nextScopeRect.right > currentScopeRect.right &&
                 nextScopeRect.top < currentScopeRect.top &&
@@ -410,19 +455,25 @@ const detectScope = (ev: MouseEvent): { scope: string | null, scopeRect: Rect | 
     const scopeHasChanged = currentScope !== scope;
     if (scopeHasChanged) {
         currentScope = scope;
-        currentScopeRect = scope == null ? null : (nextScopeRect !== null ? nextScopeRect : getScopeRect(scope));
+        currentScopeTopElement = topElement;
+        currentScopeRect = nextScopeRect || (topElement ? getScopeRect(topElement): NULL);
     }
 
     return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged };
 }
 
-const getScope = (element: Element): string | null => element.getAttributeNames().filter(name => name.startsWith('b-'))[0] || null;
+const getScope = async (element: Element): Promise<string | null> => {
+    const scope = element.getAttributeNames().filter(name => name.startsWith('b-'))[0] || NULL;
+    const reazorSourceName = await getRazorSourceName(scope);
+    if (!reazorSourceName || reazorSourceName === NotFound) return NULL;
+    return scope;
+}
 
 const getRazorSourceName = async (scope: string | null): Promise<RazorSourceName | null> => {
-    if (scope === null) return null;
+    if (!scope) return NULL;
 
-    let razorSourceName = razorSourceMap[scope] || null;
-    if (razorSourceName !== null) return razorSourceName;
+    let razorSourceName = razorSourceMap[scope] || NULL;
+    if (razorSourceName) return razorSourceName;
 
     const res = await fetch(`${CONTENT_ROOT}RazorSourceMapFiles/${scope}.txt`);
     if (res.ok) {
@@ -439,7 +490,7 @@ const getRazorSourceName = async (scope: string | null): Promise<RazorSourceName
 }
 
 const displayScopeMask = (scopeRect: Rect | null, razorSourceName: RazorSourceName | null): void => {
-    if (scopeRect === null || razorSourceName === null || razorSourceName === NotFound) {
+    if (!scopeRect || !razorSourceName || razorSourceName === NotFound) {
         uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
         return;
@@ -455,32 +506,59 @@ const displayScopeMask = (scopeRect: Rect | null, razorSourceName: RazorSourceNa
         borderRightWidth: (overlayRect.width - scopeRect.right) + 'px'
     });
 
-    uiElements.sourceNameTipProjectName.textContent = razorSourceName.projectName;
-    uiElements.sourceNameTipItemName.textContent = razorSourceName.itemName;
+    setSourceNameTip(razorSourceName.projectName, razorSourceName.itemName);
     uiElements.sourceNameTip.style.display = 'block';
 }
 
-const getScopeRect = (scope: string | null): Rect => {
-    const scopeRect = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
-    if (scope !== null) {
-        const allElementsInScope = doc.body.querySelectorAll(`*[${scope}]`);
-        allElementsInScope.forEach(e => {
-            const rect = e.getBoundingClientRect();
+const getScopeRect = (element: NodeWithLogicalNodeProps): Rect => {
+
+    const getLogicalNodes = (element: NodeWithLogicalNodeProps): [NodeWithLogicalNodeProps | null, NodeWithLogicalNodeProps[]] => {
+        const empty: [NodeWithLogicalNodeProps | null, NodeWithLogicalNodeProps[]] = [NULL, []];
+        if (!logicalNodeParentKey || !logicalNodeChildrenKey) return empty;
+        const logicalNodeParent = element[logicalNodeParentKey];
+        const logicalNodeChildren = element[logicalNodeChildrenKey];
+        if (isArray(logicalNodeParent) || !logicalNodeParent) return empty;
+        if (!isArray(logicalNodeChildren) || !logicalNodeChildren) return empty;
+        return [logicalNodeParent, logicalNodeChildren];
+    };
+
+    const getChildren = (element: NodeWithLogicalNodeProps): NodeWithLogicalNodeProps[] => {
+        const [logicalNodeParent, logicalNodeChildren] = getLogicalNodes(element);
+        if (logicalNodeParent?.nodeType === COMMENT_NODE) {
+            const [_, children] = getLogicalNodes(logicalNodeParent);
+            return [...children, element];
+        }
+        else if (element.nodeType === COMMENT_NODE) {
+            return [...logicalNodeChildren, element];
+        }
+        return [element];
+    };
+
+    const getRect = (children: NodeWithLogicalNodeProps[]): Rect => {
+        const RectNA = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
+        const scopeRect = { ...RectNA };
+        children.forEach(e => {
+            const rect = (e.nodeType === Node.ELEMENT_NODE) ? (e as any as HTMLElement).getBoundingClientRect() :
+                (e.nodeType === COMMENT_NODE) ? getRect(getLogicalNodes(e)[1]) :
+                    RectNA;
             scopeRect.top = Math.min(scopeRect.top, rect.top);
             scopeRect.left = Math.min(scopeRect.left, rect.left);
             scopeRect.bottom = Math.max(scopeRect.bottom, rect.bottom);
             scopeRect.right = Math.max(scopeRect.right, rect.right);
         });
+        return scopeRect;
     }
-    return scopeRect;
+
+    const children = getChildren(element);
+    return getRect(children);
 }
 
 const window_onResize = (ev: UIEvent): void => {
     if (currentMode === Mode.Inactive) return;
-    if (currentScope === null || currentScopeRect === null) return;
-    if (lastDetectedRazorSource === null || lastDetectedRazorSource === NotFound) return;
+    if (!currentScope || !currentScopeTopElement || !currentScopeRect) return;
+    if (!lastDetectedRazorSource || lastDetectedRazorSource === NotFound) return;
 
-    currentScopeRect = getScopeRect(currentScope);
+    currentScopeRect = getScopeRect(currentScopeTopElement);
     displayScopeMask(currentScopeRect, lastDetectedRazorSource);
 }
 
