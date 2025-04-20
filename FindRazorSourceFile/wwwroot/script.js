@@ -4,16 +4,22 @@ const options = {
 const FindRazorSourceFileClientOptionsKey = 'razorsource:options';
 const NotFound = 'NotFound';
 const none = 'none';
+const NULL = null;
 const CONTENT_ROOT = './_content/FindRazorSourceFile/';
 const FINDRAZORSOURCEFILE_UI_TAG = "findrazorsourcefile-ui";
 const doc = document;
+const COMMENT_NODE = Node.COMMENT_NODE;
 let _onceInit = false;
+let logicalNodeParentKey = NULL;
+let logicalNodeChildrenKey = NULL;
 let uiElements;
-let lastDetectedRazorSource = null;
-let currentScope = null;
-let currentScopeRect = null;
+let lastDetectedRazorSource = NULL;
+let currentScope = NULL;
+let currentScopeTopElement = NULL;
+let currentScopeRect = NULL;
 const razorSourceMap = {};
 let currentMode = 0;
+const isArray = (obj) => Array.isArray(obj);
 const addEventListener = (target, handlers) => {
     for (let key in handlers) {
         target.addEventListener(key, handlers[key]);
@@ -39,7 +45,7 @@ const createElement = (tagName, style, attrib, children) => {
         return childElement;
     };
     children?.forEach(child => {
-        if (Array.isArray(child)) {
+        if (isArray(child)) {
             appendChild(child);
         }
         else {
@@ -55,6 +61,7 @@ export const init = () => {
     if (_onceInit)
         return;
     _onceInit = true;
+    getLogicalNodePropKeys();
     customElements.define(FINDRAZORSOURCEFILE_UI_TAG, UIRoot);
     const ensureFindRazorSourceFileUI = () => {
         if (document.body.querySelector(FINDRAZORSOURCEFILE_UI_TAG))
@@ -69,6 +76,24 @@ export const init = () => {
         resize: window_onResize,
         storage: window_onStorage
     });
+};
+const getLogicalNodePropKeys = () => {
+    const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
+    while (commentWalker.nextNode()) {
+        const commentNode = commentWalker.currentNode;
+        if (commentNode.textContent !== "!")
+            continue;
+        const symbolProps = Object.getOwnPropertySymbols(commentNode);
+        symbolProps.forEach(prop => {
+            const propValue = commentNode[prop];
+            if (!logicalNodeParentKey && typeof (propValue.nodeType) !== undefined)
+                logicalNodeParentKey = prop;
+            if (!logicalNodeChildrenKey && isArray(propValue))
+                logicalNodeChildrenKey = prop;
+        });
+        if (logicalNodeParentKey && logicalNodeChildrenKey)
+            break;
+    }
 };
 class UIRoot extends HTMLElement {
     constructor() {
@@ -114,14 +139,14 @@ const createUIElements = (parent) => {
         position: 'fixed', top: '0', left: '0', bottom: '0', right: '0', zIndex: '9999',
         backgroundColor: 'transparent', borderStyle: 'solid', display: none, opacity: '0',
         transition: 'border 0.2s ease-out, box-shadow 0.2s ease-out, opacity 0.2s linear'
-    }, null, [
+    }, NULL, [
         {
             sourceNameTip: createElement('div', {
                 position: 'absolute', top: '4px', left: '4px', padding: '2px 6px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
                 backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
                 whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out'
-            }, null, [
+            }, NULL, [
                 createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPWebApplication_16x.svg' }),
                 { sourceNameTipProjectName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) },
                 createElement('span', { verticalAlign: 'middle' }, { textContent: ' | ' }),
@@ -143,8 +168,8 @@ const createUIElements = (parent) => {
                 position: 'fixed', bottom: '0', right: '8px', padding: '8px 12px',
                 border: '#ccc', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
                 opacity: '0', transition: 'ease-out all 0.2s', pointerEvents: none
-            }, null, [
-                createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' }, null, [
+            }, NULL, [
+                createElement('label', { margin: '0', padding: '0', fontFamily: 'sans-serif', fontSize: '12px', color: '#111' }, NULL, [
                     { settingsOpenInVSCode: createElement('input', { margin: '0 8px 0 0', padding: '0', verticalAlign: 'middle' }, { type: 'checkbox' }) },
                     createElement('span', { verticalAlign: 'middle' }, { textContent: 'Open the .razor file of the clicked component in ' }),
                     createElement('img', { verticalAlign: 'middle', width: '18px' }, { src: CONTENT_ROOT + 'vscode.svg' }),
@@ -165,6 +190,10 @@ const updateUIeffects = (mode) => {
     });
     uiElements.sourceNameTip.style.opacity = sourcetipOpacity;
 };
+const setSourceNameTip = (projectName, itemName) => {
+    uiElements.sourceNameTipProjectName.textContent = projectName;
+    uiElements.sourceNameTipItemName.textContent = itemName;
+};
 const onKeyDown = (ev) => {
     const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
     const pressedEscape = (ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey);
@@ -179,10 +208,10 @@ const onKeyDown = (ev) => {
         hideSettingsForm();
         setTimeout(() => { if (currentMode === 1 || currentMode === 2)
             uiElements.overlay.style.opacity = '1'; }, 1);
-        uiElements.sourceNameTipProjectName.textContent = '';
-        uiElements.sourceNameTipItemName.textContent = '';
-        currentScope = null;
-        currentScopeRect = null;
+        setSourceNameTip("", "");
+        currentScope = NULL;
+        currentScopeTopElement = NULL;
+        currentScopeRect = NULL;
     }
     else if ((currentMode === 1 || currentMode === 2) && (pressedEscape || pressedCtrlShiftF)) {
         stopPropagation(ev);
@@ -207,7 +236,7 @@ const overlay_onMouseMove = async (ev) => {
 const overlay_onClick = (ev) => {
     hideSettingsForm();
     if (currentMode === 1) {
-        if (currentScope !== null && lastDetectedRazorSource !== null && lastDetectedRazorSource !== NotFound) {
+        if (currentScope && lastDetectedRazorSource && lastDetectedRazorSource !== NotFound) {
             currentMode = 2;
             updateUIeffects(2);
             const event = new Event("razorsource:lockin", { bubbles: false, cancelable: false });
@@ -246,35 +275,41 @@ const settingsOpenInVSCode_onClick = (ev) => {
     saveOptionsFromLocalStorage();
 };
 const detectTargetAndDisplayIt = async (ev) => {
-    const result = detectScope(ev);
+    const result = await detectScope(ev);
     if (result.scopeHasChanged === false)
         return;
     lastDetectedRazorSource = await getRazorSourceName(result.scope);
     displayScopeMask(result.scopeRect, lastDetectedRazorSource);
 };
-const detectScope = (ev) => {
+const detectScope = async (ev) => {
     uiElements.overlay.style.visibility = 'hidden';
     const hovered = doc.elementFromPoint(ev.clientX, ev.clientY);
     uiElements.overlay.style.visibility = 'visible';
-    let scope = null;
-    for (var nearestTarget = hovered; nearestTarget !== null; nearestTarget = nearestTarget.parentElement) {
-        scope = getScope(nearestTarget);
-        if (scope !== null)
-            break;
-    }
-    let nextScopeRect = null;
-    if (scope === null) {
-        if (currentScopeRect !== null) {
-            if (currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
-                currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
-                return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
-            }
+    let scope = NULL;
+    let topElement = NULL;
+    for (let element = hovered; element; element = element.parentElement) {
+        if (!scope) {
+            scope = await getScope(element);
+            if (scope)
+                topElement = element;
+        }
+        else {
+            if (scope === await getScope(element))
+                topElement = element;
         }
     }
-    else if (currentScope !== null && currentScope !== scope && currentScopeRect !== null) {
+    let nextScopeRect = NULL;
+    if (!scope || !topElement) {
+        if (currentScopeRect &&
+            currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
+            currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
+            return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
+        }
+    }
+    else if (currentScope && currentScope !== scope && currentScopeRect) {
         if (currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
             currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
-            nextScopeRect = getScopeRect(scope);
+            nextScopeRect = getScopeRect(topElement);
             if (nextScopeRect.left < currentScopeRect.left &&
                 nextScopeRect.right > currentScopeRect.right &&
                 nextScopeRect.top < currentScopeRect.top &&
@@ -286,16 +321,23 @@ const detectScope = (ev) => {
     const scopeHasChanged = currentScope !== scope;
     if (scopeHasChanged) {
         currentScope = scope;
-        currentScopeRect = scope == null ? null : (nextScopeRect !== null ? nextScopeRect : getScopeRect(scope));
+        currentScopeTopElement = topElement;
+        currentScopeRect = nextScopeRect || (topElement ? getScopeRect(topElement) : NULL);
     }
     return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged };
 };
-const getScope = (element) => element.getAttributeNames().filter(name => name.startsWith('b-'))[0] || null;
+const getScope = async (element) => {
+    const scope = element.getAttributeNames().filter(name => name.startsWith('b-'))[0] || NULL;
+    const reazorSourceName = await getRazorSourceName(scope);
+    if (!reazorSourceName || reazorSourceName === NotFound)
+        return NULL;
+    return scope;
+};
 const getRazorSourceName = async (scope) => {
-    if (scope === null)
-        return null;
-    let razorSourceName = razorSourceMap[scope] || null;
-    if (razorSourceName !== null)
+    if (!scope)
+        return NULL;
+    let razorSourceName = razorSourceMap[scope] || NULL;
+    if (razorSourceName)
         return razorSourceName;
     const res = await fetch(`${CONTENT_ROOT}RazorSourceMapFiles/${scope}.txt`);
     if (res.ok) {
@@ -311,7 +353,7 @@ const getRazorSourceName = async (scope) => {
     }
 };
 const displayScopeMask = (scopeRect, razorSourceName) => {
-    if (scopeRect === null || razorSourceName === null || razorSourceName === NotFound) {
+    if (!scopeRect || !razorSourceName || razorSourceName === NotFound) {
         uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
         return;
@@ -324,32 +366,58 @@ const displayScopeMask = (scopeRect, razorSourceName) => {
         borderBottomWidth: (overlayRect.height - scopeRect.bottom) + 'px',
         borderRightWidth: (overlayRect.width - scopeRect.right) + 'px'
     });
-    uiElements.sourceNameTipProjectName.textContent = razorSourceName.projectName;
-    uiElements.sourceNameTipItemName.textContent = razorSourceName.itemName;
+    setSourceNameTip(razorSourceName.projectName, razorSourceName.itemName);
     uiElements.sourceNameTip.style.display = 'block';
 };
-const getScopeRect = (scope) => {
-    const scopeRect = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
-    if (scope !== null) {
-        const allElementsInScope = doc.body.querySelectorAll(`*[${scope}]`);
-        allElementsInScope.forEach(e => {
-            const rect = e.getBoundingClientRect();
+const getScopeRect = (element) => {
+    const getLogicalNodes = (element) => {
+        const empty = [NULL, []];
+        if (!logicalNodeParentKey || !logicalNodeChildrenKey)
+            return empty;
+        const logicalNodeParent = element[logicalNodeParentKey];
+        const logicalNodeChildren = element[logicalNodeChildrenKey];
+        if (isArray(logicalNodeParent) || !logicalNodeParent)
+            return empty;
+        if (!isArray(logicalNodeChildren) || !logicalNodeChildren)
+            return empty;
+        return [logicalNodeParent, logicalNodeChildren];
+    };
+    const getChildren = (element) => {
+        const [logicalNodeParent, logicalNodeChildren] = getLogicalNodes(element);
+        if (logicalNodeParent?.nodeType === COMMENT_NODE) {
+            const [_, children] = getLogicalNodes(logicalNodeParent);
+            return [...children, element];
+        }
+        else if (element.nodeType === COMMENT_NODE) {
+            return [...logicalNodeChildren, element];
+        }
+        return [element];
+    };
+    const getRect = (children) => {
+        const RectNA = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
+        const scopeRect = { ...RectNA };
+        children.forEach(e => {
+            const rect = (e.nodeType === Node.ELEMENT_NODE) ? e.getBoundingClientRect() :
+                (e.nodeType === COMMENT_NODE) ? getRect(getLogicalNodes(e)[1]) :
+                    RectNA;
             scopeRect.top = Math.min(scopeRect.top, rect.top);
             scopeRect.left = Math.min(scopeRect.left, rect.left);
             scopeRect.bottom = Math.max(scopeRect.bottom, rect.bottom);
             scopeRect.right = Math.max(scopeRect.right, rect.right);
         });
-    }
-    return scopeRect;
+        return scopeRect;
+    };
+    const children = getChildren(element);
+    return getRect(children);
 };
 const window_onResize = (ev) => {
     if (currentMode === 0)
         return;
-    if (currentScope === null || currentScopeRect === null)
+    if (!currentScope || !currentScopeTopElement || !currentScopeRect)
         return;
-    if (lastDetectedRazorSource === null || lastDetectedRazorSource === NotFound)
+    if (!lastDetectedRazorSource || lastDetectedRazorSource === NotFound)
         return;
-    currentScopeRect = getScopeRect(currentScope);
+    currentScopeRect = getScopeRect(currentScopeTopElement);
     displayScopeMask(currentScopeRect, lastDetectedRazorSource);
 };
 const window_onStorage = (ev) => loadOptionsFromLocalStorage();
