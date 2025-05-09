@@ -52,6 +52,12 @@ type NodeWithLogicalNodeProps = Node & {
     [key: symbol]: NodeWithLogicalNodeProps | NodeWithLogicalNodeProps[] | undefined;
 }
 
+type ComponentMap = {
+    boundaryRect: Rect;
+    depth: number;
+    source: RazorSourceNameType;
+}
+
 // Constants
 
 const NotFound = 'NotFound';
@@ -67,6 +73,10 @@ const FINDRAZORSOURCEFILE_UI_TAG = "findrazorsourcefile-ui";
 const doc = document;
 
 const COMMENT_NODE = Node.COMMENT_NODE;
+
+const ELEMENT_NODE = Node.ELEMENT_NODE;
+
+const MaxRect: Rect = { top: 9999999, left: 9999999, bottom: 0, right: 0 } as const;
 
 declare const Blazor: any; // Blazor is defined in the parent page
 
@@ -95,6 +105,13 @@ let currentMode: Mode = Mode.Inactive;
 // Utility functions
 
 const isArray = (obj: unknown): obj is any[] => Array.isArray(obj);
+
+const combineRects = (rects: Rect[]): Rect => rects.reduce((pre, cur) => ({
+    top: Math.min(pre.top, cur.top),
+    left: Math.min(pre.left, cur.left),
+    bottom: Math.max(pre.bottom, cur.bottom),
+    right: Math.max(pre.right, cur.right)
+}), MaxRect);
 
 /** Add event listeners to a target element */
 const addEventListener = (target: HTMLElement | Document | Window, handlers: { [key: string]: any }) => {
@@ -152,6 +169,8 @@ export const init = () => {
     if (_onceInit) return;
     _onceInit = true;
 
+    createComponentsMap();
+
     getLogicalNodePropKeys();
 
     customElements.define(FINDRAZORSOURCEFILE_UI_TAG, UIRoot);
@@ -171,6 +190,54 @@ export const init = () => {
         resize: window_onResize,
         storage: window_onStorage
     });
+}
+
+const createComponentsMap = async (): Promise<ComponentMap[]> => {
+
+    const detectMarker = (node: Node) => node.textContent?.trim().match(/^(begin|end):(frsf-[a-z0-9]{10})$/) || [];
+
+    const getDepth = (e: HTMLElement): number => {
+        let depth = 0;
+        while (e) { depth++; e = e.parentElement as HTMLElement; }
+        return depth;
+    }
+
+    const componentsMap = [] as ComponentMap[];
+
+    const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
+    while (commentWalker.nextNode()) {
+        const commentNode = commentWalker.currentNode as Comment;
+        const [, beginTag, beginHash] = detectMarker(commentNode);
+        if (beginTag !== "begin") continue;
+
+        const rsn = await getRazorSourceName(beginHash);
+        if (!rsn || rsn === NotFound) continue;
+
+        //if (rsn.itemName !== "Shared\\AboutBlazor.razor") continue;
+
+        let sibling = commentNode.nextSibling;
+        const elements = [] as HTMLElement[];
+        while (sibling) {
+            if (sibling.nodeType === ELEMENT_NODE) {
+                elements.push(sibling as HTMLElement);
+            }
+            if (sibling.nodeType === COMMENT_NODE) {
+                const [, endTag, endHash] = detectMarker(sibling);
+                if (endTag === "end" && endHash === beginHash) {
+                    componentsMap.push({
+                        boundaryRect: combineRects(elements.map(e => e.getBoundingClientRect())),
+                        depth: Math.min(...elements.map(getDepth)),
+                        source: rsn
+                    });
+                    break;
+                }
+            }
+            sibling = sibling.nextSibling;
+        }
+    }
+
+    // console.log(`FOUND COMPONENT:`, componentsMap);
+    return componentsMap;
 }
 
 const getLogicalNodePropKeys = () => {
@@ -456,7 +523,7 @@ const detectScope = async (ev: MouseEvent): Promise<{ scope: string | null, scop
     if (scopeHasChanged) {
         currentScope = scope;
         currentScopeTopElement = topElement;
-        currentScopeRect = nextScopeRect || (topElement ? getScopeRect(topElement): NULL);
+        currentScopeRect = nextScopeRect || (topElement ? getScopeRect(topElement) : NULL);
     }
 
     return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged };
@@ -534,23 +601,11 @@ const getScopeRect = (element: NodeWithLogicalNodeProps): Rect => {
         return [element];
     };
 
-    const getRect = (children: NodeWithLogicalNodeProps[]): Rect => {
-        const RectNA = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
-        const scopeRect = { ...RectNA };
-        children.forEach(e => {
-            const rect = (e.nodeType === Node.ELEMENT_NODE) ? (e as any as HTMLElement).getBoundingClientRect() :
-                (e.nodeType === COMMENT_NODE) ? getRect(getLogicalNodes(e)[1]) :
-                    RectNA;
-            scopeRect.top = Math.min(scopeRect.top, rect.top);
-            scopeRect.left = Math.min(scopeRect.left, rect.left);
-            scopeRect.bottom = Math.max(scopeRect.bottom, rect.bottom);
-            scopeRect.right = Math.max(scopeRect.right, rect.right);
-        });
-        return scopeRect;
-    }
+    const getRect = (children: NodeWithLogicalNodeProps[]): Rect => combineRects(children.map(e =>
+        (e.nodeType === ELEMENT_NODE) ? (e as any as HTMLElement).getBoundingClientRect() :
+            (e.nodeType === COMMENT_NODE) ? getRect(getLogicalNodes(e)[1]) : MaxRect));
 
-    const children = getChildren(element);
-    return getRect(children);
+    return getRect(getChildren(element));
 }
 
 const window_onResize = (ev: UIEvent): void => {

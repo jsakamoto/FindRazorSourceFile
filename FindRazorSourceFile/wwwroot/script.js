@@ -9,6 +9,8 @@ const CONTENT_ROOT = './_content/FindRazorSourceFile/';
 const FINDRAZORSOURCEFILE_UI_TAG = "findrazorsourcefile-ui";
 const doc = document;
 const COMMENT_NODE = Node.COMMENT_NODE;
+const ELEMENT_NODE = Node.ELEMENT_NODE;
+const MaxRect = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
 let _onceInit = false;
 let logicalNodeParentKey = NULL;
 let logicalNodeChildrenKey = NULL;
@@ -20,6 +22,12 @@ let currentScopeRect = NULL;
 const razorSourceMap = {};
 let currentMode = 0;
 const isArray = (obj) => Array.isArray(obj);
+const combineRects = (rects) => rects.reduce((pre, cur) => ({
+    top: Math.min(pre.top, cur.top),
+    left: Math.min(pre.left, cur.left),
+    bottom: Math.max(pre.bottom, cur.bottom),
+    right: Math.max(pre.right, cur.right)
+}), MaxRect);
 const addEventListener = (target, handlers) => {
     for (let key in handlers) {
         target.addEventListener(key, handlers[key]);
@@ -61,6 +69,7 @@ export const init = () => {
     if (_onceInit)
         return;
     _onceInit = true;
+    createComponentsMap();
     getLogicalNodePropKeys();
     customElements.define(FINDRAZORSOURCEFILE_UI_TAG, UIRoot);
     const ensureFindRazorSourceFileUI = () => {
@@ -76,6 +85,48 @@ export const init = () => {
         resize: window_onResize,
         storage: window_onStorage
     });
+};
+const createComponentsMap = async () => {
+    const detectMarker = (node) => node.textContent?.trim().match(/^(begin|end):(frsf-[a-z0-9]{10})$/) || [];
+    const getDepth = (e) => {
+        let depth = 0;
+        while (e) {
+            depth++;
+            e = e.parentElement;
+        }
+        return depth;
+    };
+    const componentsMap = [];
+    const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
+    while (commentWalker.nextNode()) {
+        const commentNode = commentWalker.currentNode;
+        const [, beginTag, beginHash] = detectMarker(commentNode);
+        if (beginTag !== "begin")
+            continue;
+        const rsn = await getRazorSourceName(beginHash);
+        if (!rsn || rsn === NotFound)
+            continue;
+        let sibling = commentNode.nextSibling;
+        const elements = [];
+        while (sibling) {
+            if (sibling.nodeType === ELEMENT_NODE) {
+                elements.push(sibling);
+            }
+            if (sibling.nodeType === COMMENT_NODE) {
+                const [, endTag, endHash] = detectMarker(sibling);
+                if (endTag === "end" && endHash === beginHash) {
+                    componentsMap.push({
+                        boundaryRect: combineRects(elements.map(e => e.getBoundingClientRect())),
+                        depth: Math.min(...elements.map(getDepth)),
+                        source: rsn
+                    });
+                    break;
+                }
+            }
+            sibling = sibling.nextSibling;
+        }
+    }
+    return componentsMap;
 };
 const getLogicalNodePropKeys = () => {
     const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
@@ -393,22 +444,9 @@ const getScopeRect = (element) => {
         }
         return [element];
     };
-    const getRect = (children) => {
-        const RectNA = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
-        const scopeRect = { ...RectNA };
-        children.forEach(e => {
-            const rect = (e.nodeType === Node.ELEMENT_NODE) ? e.getBoundingClientRect() :
-                (e.nodeType === COMMENT_NODE) ? getRect(getLogicalNodes(e)[1]) :
-                    RectNA;
-            scopeRect.top = Math.min(scopeRect.top, rect.top);
-            scopeRect.left = Math.min(scopeRect.left, rect.left);
-            scopeRect.bottom = Math.max(scopeRect.bottom, rect.bottom);
-            scopeRect.right = Math.max(scopeRect.right, rect.right);
-        });
-        return scopeRect;
-    };
-    const children = getChildren(element);
-    return getRect(children);
+    const getRect = (children) => combineRects(children.map(e => (e.nodeType === ELEMENT_NODE) ? e.getBoundingClientRect() :
+        (e.nodeType === COMMENT_NODE) ? getRect(getLogicalNodes(e)[1]) : MaxRect));
+    return getRect(getChildren(element));
 };
 const window_onResize = (ev) => {
     if (currentMode === 0)

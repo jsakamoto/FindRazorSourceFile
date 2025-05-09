@@ -1,4 +1,6 @@
-﻿@page "/fetchdata"
+﻿@FRSF_BEGIN_COMPONENT()
+
+@page "/fetchdata"
 @inject IWeatherForecastService WeatherForecastService
 
 <TitleHeader Title="Weather forecast" Description="This component demonstrates fetching data from the server." />
@@ -40,3 +42,5 @@ else
         forecasts = await WeatherForecastService.GetForecastAsync();
     }
 }
+
+@FRSF_END_COMPONENT()
