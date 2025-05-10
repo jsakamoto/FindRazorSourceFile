@@ -16,8 +16,9 @@ let logicalNodeParentKey = NULL;
 let logicalNodeChildrenKey = NULL;
 let uiElements;
 let lastDetectedRazorSource = NULL;
+let currentComponentsMap = [];
 let currentScope = NULL;
-let currentScopeTopElement = NULL;
+let currentScopeElements = [];
 let currentScopeRect = NULL;
 const razorSourceMap = {};
 let currentMode = 0;
@@ -28,6 +29,19 @@ const combineRects = (rects) => rects.reduce((pre, cur) => ({
     bottom: Math.max(pre.bottom, cur.bottom),
     right: Math.max(pre.right, cur.right)
 }), MaxRect);
+const isPointerInRect = (pointer, rect) => {
+    return rect !== null &&
+        rect.left < pointer.clientX && pointer.clientX < rect.right &&
+        rect.top < pointer.clientY && pointer.clientY < rect.bottom;
+};
+const getDepth = (e) => {
+    let depth = 0;
+    while (e) {
+        depth++;
+        e = e.parentElement;
+    }
+    return depth;
+};
 const addEventListener = (target, handlers) => {
     for (let key in handlers) {
         target.addEventListener(key, handlers[key]);
@@ -69,7 +83,6 @@ export const init = () => {
     if (_onceInit)
         return;
     _onceInit = true;
-    createComponentsMap();
     getLogicalNodePropKeys();
     customElements.define(FINDRAZORSOURCEFILE_UI_TAG, UIRoot);
     const ensureFindRazorSourceFileUI = () => {
@@ -88,14 +101,6 @@ export const init = () => {
 };
 const createComponentsMap = async () => {
     const detectMarker = (node) => node.textContent?.trim().match(/^(begin|end):(frsf-[a-z0-9]{10})$/) || [];
-    const getDepth = (e) => {
-        let depth = 0;
-        while (e) {
-            depth++;
-            e = e.parentElement;
-        }
-        return depth;
-    };
     const componentsMap = [];
     const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
     while (commentWalker.nextNode()) {
@@ -114,11 +119,13 @@ const createComponentsMap = async () => {
             }
             if (sibling.nodeType === COMMENT_NODE) {
                 const [, endTag, endHash] = detectMarker(sibling);
-                if (endTag === "end" && endHash === beginHash) {
+                if (endTag === "end" && endHash === beginHash && elements.length > 0) {
                     componentsMap.push({
-                        boundaryRect: combineRects(elements.map(e => e.getBoundingClientRect())),
+                        hash: beginHash,
+                        rect: combineRects(elements.map(e => e.getBoundingClientRect())),
                         depth: Math.min(...elements.map(getDepth)),
-                        source: rsn
+                        source: rsn,
+                        elements
                     });
                     break;
                 }
@@ -245,12 +252,13 @@ const setSourceNameTip = (projectName, itemName) => {
     uiElements.sourceNameTipProjectName.textContent = projectName;
     uiElements.sourceNameTipItemName.textContent = itemName;
 };
-const onKeyDown = (ev) => {
+const onKeyDown = async (ev) => {
     const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
     const pressedEscape = (ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey);
     if (currentMode === 0 && pressedCtrlShiftF) {
         stopPropagation(ev);
         ev.preventDefault();
+        currentComponentsMap = await createComponentsMap();
         currentMode = 1;
         applyStyle(uiElements.overlay, {
             borderWidth: '50vh 50vw',
@@ -261,7 +269,7 @@ const onKeyDown = (ev) => {
             uiElements.overlay.style.opacity = '1'; }, 1);
         setSourceNameTip("", "");
         currentScope = NULL;
-        currentScopeTopElement = NULL;
+        currentScopeElements = [];
         currentScopeRect = NULL;
     }
     else if ((currentMode === 1 || currentMode === 2) && (pressedEscape || pressedCtrlShiftF)) {
@@ -273,6 +281,7 @@ const onKeyDown = (ev) => {
         uiElements.overlay.style.borderWidth = '50vh 50vw';
         hideSettingsForm();
         if (currentMode === 0) {
+            currentComponentsMap = [];
             uiElements.overlay.style.opacity = '0';
             setTimeout(() => { if (currentMode === 0)
                 uiElements.overlay.style.display = none; }, 200);
@@ -329,7 +338,7 @@ const detectTargetAndDisplayIt = async (ev) => {
     const result = await detectScope(ev);
     if (result.scopeHasChanged === false)
         return;
-    lastDetectedRazorSource = await getRazorSourceName(result.scope);
+    lastDetectedRazorSource = await getRazorSourceName(result);
     displayScopeMask(result.scopeRect, lastDetectedRazorSource);
 };
 const detectScope = async (ev) => {
@@ -337,6 +346,9 @@ const detectScope = async (ev) => {
     const hovered = doc.elementFromPoint(ev.clientX, ev.clientY);
     uiElements.overlay.style.visibility = 'visible';
     let scope = NULL;
+    let scopeRect = NULL;
+    let scopeSource = NULL;
+    let scopeElements = [];
     let topElement = NULL;
     for (let element = hovered; element; element = element.parentElement) {
         if (!scope) {
@@ -349,22 +361,47 @@ const detectScope = async (ev) => {
                 topElement = element;
         }
     }
-    let nextScopeRect = NULL;
-    if (!scope || !topElement) {
-        if (currentScopeRect &&
-            currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
-            currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
+    if (scope && topElement) {
+        scopeElements = [topElement];
+        scopeRect = (currentScope === scope ? currentScopeRect : NULL) || getScopeRect(topElement);
+        scopeSource = await getRazorSourceName(scope);
+    }
+    const hoveredComponentMap = currentComponentsMap.filter(c => isPointerInRect(ev, c.rect)).sort((a, b) => b.depth - a.depth)[0];
+    if (hoveredComponentMap) {
+        let shouldUseComponentMap = false;
+        if (!scope) {
+            shouldUseComponentMap = true;
+        }
+        else if (topElement && scopeSource) {
+            if (scopeSource !== NotFound && scopeSource.itemName === hoveredComponentMap.source.itemName) {
+                scopeRect = combineRects([scopeRect || MaxRect, hoveredComponentMap.rect]);
+                console.log(`COMBINE RECTS:`, scopeRect);
+                scopeElements = [topElement, ...hoveredComponentMap.elements];
+            }
+            else {
+                if (getDepth(topElement) < hoveredComponentMap.depth) {
+                    shouldUseComponentMap = true;
+                }
+            }
+        }
+        if (shouldUseComponentMap) {
+            scope = hoveredComponentMap.hash;
+            scopeElements = hoveredComponentMap.elements;
+            scopeRect = hoveredComponentMap.rect;
+            scopeSource = hoveredComponentMap.source;
+        }
+    }
+    if (!scope || !scopeRect) {
+        if (isPointerInRect(ev, currentScopeRect)) {
             return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
         }
     }
     else if (currentScope && currentScope !== scope && currentScopeRect) {
-        if (currentScopeRect.left < ev.clientX && ev.clientX < currentScopeRect.right &&
-            currentScopeRect.top < ev.clientY && ev.clientY < currentScopeRect.bottom) {
-            nextScopeRect = getScopeRect(topElement);
-            if (nextScopeRect.left < currentScopeRect.left &&
-                nextScopeRect.right > currentScopeRect.right &&
-                nextScopeRect.top < currentScopeRect.top &&
-                nextScopeRect.bottom > currentScopeRect.bottom) {
+        if (isPointerInRect(ev, currentScopeRect)) {
+            if (scopeRect.left < currentScopeRect.left &&
+                scopeRect.right > currentScopeRect.right &&
+                scopeRect.top < currentScopeRect.top &&
+                scopeRect.bottom > currentScopeRect.bottom) {
                 return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged: false };
             }
         }
@@ -372,10 +409,10 @@ const detectScope = async (ev) => {
     const scopeHasChanged = currentScope !== scope;
     if (scopeHasChanged) {
         currentScope = scope;
-        currentScopeTopElement = topElement;
-        currentScopeRect = nextScopeRect || (topElement ? getScopeRect(topElement) : NULL);
+        currentScopeElements = scopeElements;
+        currentScopeRect = scopeRect;
     }
-    return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged };
+    return { scope: currentScope, scopeRect: currentScopeRect, scopeHasChanged, source: scopeSource };
 };
 const getScope = async (element) => {
     const scope = element.getAttributeNames().filter(name => name.startsWith('b-'))[0] || NULL;
@@ -384,7 +421,10 @@ const getScope = async (element) => {
         return NULL;
     return scope;
 };
-const getRazorSourceName = async (scope) => {
+const getRazorSourceName = async (arg) => {
+    if (arg && typeof arg !== 'string' && arg.source)
+        return arg.source;
+    const scope = typeof arg === 'string' ? arg : arg?.scope || NULL;
     if (!scope)
         return NULL;
     let razorSourceName = razorSourceMap[scope] || NULL;
@@ -451,11 +491,11 @@ const getScopeRect = (element) => {
 const window_onResize = (ev) => {
     if (currentMode === 0)
         return;
-    if (!currentScope || !currentScopeTopElement || !currentScopeRect)
+    if (!currentScope || !currentScopeRect)
         return;
     if (!lastDetectedRazorSource || lastDetectedRazorSource === NotFound)
         return;
-    currentScopeRect = getScopeRect(currentScopeTopElement);
+    currentScopeRect = combineRects(currentScopeElements.map(e => getScopeRect(e)));
     displayScopeMask(currentScopeRect, lastDetectedRazorSource);
 };
 const window_onStorage = (ev) => loadOptionsFromLocalStorage();
