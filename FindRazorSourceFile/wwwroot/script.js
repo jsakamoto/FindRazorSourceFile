@@ -10,7 +10,7 @@ const FINDRAZORSOURCEFILE_UI_TAG = "findrazorsourcefile-ui";
 const doc = document;
 const COMMENT_NODE = Node.COMMENT_NODE;
 const ELEMENT_NODE = Node.ELEMENT_NODE;
-const MaxRect = { top: 9999999, left: 9999999, bottom: 0, right: 0 };
+const MaxRect = { top: Number.MAX_SAFE_INTEGER, left: Number.MAX_SAFE_INTEGER, bottom: Number.MIN_SAFE_INTEGER, right: Number.MIN_SAFE_INTEGER };
 let _onceInit = false;
 let logicalNodeParentKey = NULL;
 let logicalNodeChildrenKey = NULL;
@@ -96,6 +96,7 @@ export const init = () => {
     addEventListener(doc, { keydown: onKeyDown });
     addEventListener(window, {
         resize: window_onResize,
+        scroll: window_onResize,
         storage: window_onStorage
     });
 };
@@ -108,8 +109,8 @@ const createComponentsMap = async () => {
         const [, beginTag, beginHash] = detectMarker(commentNode);
         if (beginTag !== "begin")
             continue;
-        const rsn = await getRazorSourceName(beginHash);
-        if (!rsn || rsn === NotFound)
+        const razorSourceName = await getRazorSourceName(beginHash);
+        if (!razorSourceName || razorSourceName === NotFound)
             continue;
         let sibling = commentNode.nextSibling;
         const elements = [];
@@ -122,9 +123,9 @@ const createComponentsMap = async () => {
                 if (endTag === "end" && endHash === beginHash && elements.length > 0) {
                     componentsMap.push({
                         hash: beginHash,
-                        rect: combineRects(elements.map(e => e.getBoundingClientRect())),
+                        rect: () => combineRects(elements.map(e => e.getBoundingClientRect())),
                         depth: Math.min(...elements.map(getDepth)),
-                        source: rsn,
+                        source: razorSourceName,
                         elements
                     });
                     break;
@@ -144,10 +145,12 @@ const getLogicalNodePropKeys = () => {
         const symbolProps = Object.getOwnPropertySymbols(commentNode);
         symbolProps.forEach(prop => {
             const propValue = commentNode[prop];
-            if (!logicalNodeParentKey && typeof (propValue.nodeType) !== undefined)
-                logicalNodeParentKey = prop;
-            if (!logicalNodeChildrenKey && isArray(propValue))
-                logicalNodeChildrenKey = prop;
+            if (!propValue)
+                return;
+            if (isArray(propValue))
+                logicalNodeChildrenKey = logicalNodeChildrenKey || prop;
+            else if (typeof (propValue.nodeType) !== undefined)
+                logicalNodeParentKey = logicalNodeParentKey || prop;
         });
         if (logicalNodeParentKey && logicalNodeChildrenKey)
             break;
@@ -203,7 +206,7 @@ const createUIElements = (parent) => {
                 position: 'absolute', top: '4px', left: '4px', padding: '2px 6px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
                 backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
-                whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out'
+                whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out', pointerEvents: none
             }, NULL, [
                 createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPWebApplication_16x.svg' }),
                 { sourceNameTipProjectName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) },
@@ -246,7 +249,10 @@ const updateUIeffects = (mode) => {
         borderColor: `rgba(0, 0, 0, ${overlayOpacity})`,
         boxShadow: `inset rgb(0, 0, 0, ${overlayOpacity}) 0px 0px 6px 4px`
     });
-    uiElements.sourceNameTip.style.opacity = sourcetipOpacity;
+    applyStyle(uiElements.sourceNameTip, {
+        opacity: sourcetipOpacity,
+        pointerEvents: mode === 2 ? 'auto' : 'none'
+    });
 };
 const setSourceNameTip = (projectName, itemName) => {
     uiElements.sourceNameTipProjectName.textContent = projectName;
@@ -342,9 +348,12 @@ const detectTargetAndDisplayIt = async (ev) => {
     displayScopeMask(result.scopeRect, lastDetectedRazorSource);
 };
 const detectScope = async (ev) => {
+    const sourceNameTipVisibility = uiElements.sourceNameTip.style.visibility;
+    uiElements.sourceNameTip.style.visibility = 'hidden';
     uiElements.overlay.style.visibility = 'hidden';
     const hovered = doc.elementFromPoint(ev.clientX, ev.clientY);
     uiElements.overlay.style.visibility = 'visible';
+    uiElements.sourceNameTip.style.visibility = sourceNameTipVisibility;
     let scope = NULL;
     let scopeRect = NULL;
     let scopeSource = NULL;
@@ -366,7 +375,7 @@ const detectScope = async (ev) => {
         scopeRect = (currentScope === scope ? currentScopeRect : NULL) || getScopeRect(topElement);
         scopeSource = await getRazorSourceName(scope);
     }
-    const hoveredComponentMap = currentComponentsMap.filter(c => isPointerInRect(ev, c.rect)).sort((a, b) => b.depth - a.depth)[0];
+    const hoveredComponentMap = currentComponentsMap.filter(c => isPointerInRect(ev, c.rect())).sort((a, b) => b.depth - a.depth)[0];
     if (hoveredComponentMap) {
         let shouldUseComponentMap = false;
         if (!scope) {
@@ -374,8 +383,7 @@ const detectScope = async (ev) => {
         }
         else if (topElement && scopeSource) {
             if (scopeSource !== NotFound && scopeSource.itemName === hoveredComponentMap.source.itemName) {
-                scopeRect = combineRects([scopeRect || MaxRect, hoveredComponentMap.rect]);
-                console.log(`COMBINE RECTS:`, scopeRect);
+                scopeRect = combineRects([scopeRect || MaxRect, hoveredComponentMap.rect()]);
                 scopeElements = [topElement, ...hoveredComponentMap.elements];
             }
             else {
@@ -387,7 +395,7 @@ const detectScope = async (ev) => {
         if (shouldUseComponentMap) {
             scope = hoveredComponentMap.hash;
             scopeElements = hoveredComponentMap.elements;
-            scopeRect = hoveredComponentMap.rect;
+            scopeRect = hoveredComponentMap.rect();
             scopeSource = hoveredComponentMap.source;
         }
     }
@@ -450,12 +458,14 @@ const displayScopeMask = (scopeRect, razorSourceName) => {
         return;
     }
     const overlayRect = uiElements.overlay.getBoundingClientRect();
+    const bottomWidth = overlayRect.height - scopeRect.bottom;
+    const rightWidth = overlayRect.width - scopeRect.right;
     applyStyle(uiElements.overlay, {
         borderStyle: 'solid',
-        borderTopWidth: scopeRect.top + 'px',
-        borderLeftWidth: scopeRect.left + 'px',
-        borderBottomWidth: (overlayRect.height - scopeRect.bottom) + 'px',
-        borderRightWidth: (overlayRect.width - scopeRect.right) + 'px'
+        borderTopWidth: scopeRect.top > 0 ? scopeRect.top + 'px' : 0,
+        borderLeftWidth: scopeRect.left > 0 ? scopeRect.left + 'px' : 0,
+        borderBottomWidth: bottomWidth > 0 ? bottomWidth + 'px' : 0,
+        borderRightWidth: rightWidth > 0 ? rightWidth + 'px' : 0
     });
     setSourceNameTip(razorSourceName.projectName, razorSourceName.itemName);
     uiElements.sourceNameTip.style.display = 'block';

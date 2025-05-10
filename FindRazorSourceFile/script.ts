@@ -48,13 +48,15 @@ type HTMLElementMap = { [key: string]: HTMLElement };
 
 type CreateElementResult = [HTMLElement, HTMLElementMap];
 
-type NodeWithLogicalNodeProps = Node & {
-    [key: symbol]: NodeWithLogicalNodeProps | NodeWithLogicalNodeProps[] | undefined;
+declare global {
+    interface Node {
+        [key: symbol]: Node | Node[] | undefined;
+    }
 }
 
 type ComponentMap = {
     hash: string,
-    rect: Rect;
+    rect: () => Rect;
     depth: number;
     source: RazorSourceNameType;
     elements: HTMLElement[];
@@ -85,7 +87,7 @@ const COMMENT_NODE = Node.COMMENT_NODE;
 
 const ELEMENT_NODE = Node.ELEMENT_NODE;
 
-const MaxRect: Rect = { top: 9999999, left: 9999999, bottom: 0, right: 0 } as const;
+const MaxRect: Rect = { top: Number.MAX_SAFE_INTEGER, left: Number.MAX_SAFE_INTEGER, bottom: Number.MIN_SAFE_INTEGER, right: Number.MIN_SAFE_INTEGER } as const;
 
 declare const Blazor: any; // Blazor is defined in the parent page
 
@@ -105,7 +107,7 @@ let currentComponentsMap: ComponentMap[] = [];
 
 let currentScope: string | null = NULL;
 
-let currentScopeElements: NodeWithLogicalNodeProps[] = [];
+let currentScopeElements: Node[] = [];
 
 let currentScopeRect: Rect | null = NULL;
 
@@ -117,6 +119,7 @@ let currentMode: Mode = Mode.Inactive;
 
 const isArray = (obj: unknown): obj is any[] => Array.isArray(obj);
 
+/** Combine multiple rectangles into one. */
 const combineRects = (rects: Rect[]): Rect => rects.reduce((pre, cur) => ({
     top: Math.min(pre.top, cur.top),
     left: Math.min(pre.left, cur.left),
@@ -124,15 +127,17 @@ const combineRects = (rects: Rect[]): Rect => rects.reduce((pre, cur) => ({
     right: Math.max(pre.right, cur.right)
 }), MaxRect);
 
+/** Check if the pointer is in the rectangle. */
 const isPointerInRect = (pointer: { clientX: number, clientY: number }, rect: Rect | null): boolean => {
     return rect !== null &&
         rect.left < pointer.clientX && pointer.clientX < rect.right &&
         rect.top < pointer.clientY && pointer.clientY < rect.bottom;
 }
 
-const getDepth = (e: HTMLElement | NodeWithLogicalNodeProps): number => {
+/** Get the depth of an element in the DOM tree. */
+const getDepth = (e: Node | null): number => {
     let depth = 0;
-    while (e) { depth++; e = e.parentElement as HTMLElement; }
+    while (e) { depth++; e = e.parentElement; }
     return depth;
 }
 
@@ -209,27 +214,39 @@ export const init = () => {
 
     addEventListener(window, {
         resize: window_onResize,
+        scroll: window_onResize,
         storage: window_onStorage
     });
 }
 
+/**
+ * Create components map from the explicit markers of "FindRazorSourceFile" in the DOM tree.
+ * @returns {Promise<ComponentMap[]>} The components map.
+ */
 const createComponentsMap = async (): Promise<ComponentMap[]> => {
 
     const detectMarker = (node: Node) => node.textContent?.trim().match(/^(begin|end):(frsf-[a-z0-9]{10})$/) || [];
 
     const componentsMap = [] as ComponentMap[];
 
+    // Find all the explicit markers of "FindRazorSourceFile" in the DOM tree.
+    // The markers are in the form of HTML comments: <!-- begin:frsf-xxxxxxxxxx --> and <!-- end:frsf-xxxxxxxxxx -->
+    // so we can use a TreeWalker to traverse the DOM tree and find all the comments.
+
     const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
     while (commentWalker.nextNode()) {
-        const commentNode = commentWalker.currentNode as Comment;
+
+        // Filter if the current comment node is a begin marker.
+        const commentNode = commentWalker.currentNode;
         const [, beginTag, beginHash] = detectMarker(commentNode);
         if (beginTag !== "begin") continue;
 
-        const rsn = await getRazorSourceName(beginHash);
-        if (!rsn || rsn === NotFound) continue;
+        // Get the Razor source name from the hash.
+        const razorSourceName = await getRazorSourceName(beginHash);
+        if (!razorSourceName || razorSourceName === NotFound) continue;
 
-        //if (rsn.itemName !== "Shared\\AboutBlazor.razor") continue;
-
+        // Traverse the DOM tree for sibling nodes until we find the end marker, 
+        // and gather all the elements in between.
         let sibling = commentNode.nextSibling;
         const elements = [] as HTMLElement[];
         while (sibling) {
@@ -237,14 +254,16 @@ const createComponentsMap = async (): Promise<ComponentMap[]> => {
                 elements.push(sibling as HTMLElement);
             }
             if (sibling.nodeType === COMMENT_NODE) {
+
+                // If we find an end marker, we can stop traversing to find the end marker, 
+                // and stock the new component map.
                 const [, endTag, endHash] = detectMarker(sibling);
                 if (endTag === "end" && endHash === beginHash && elements.length > 0) {
-                    //const element = elements.sort((a, b) => getDepth(a) - getDepth(b))[0];
                     componentsMap.push({
                         hash: beginHash,
-                        rect: combineRects(elements.map(e => e.getBoundingClientRect())),
+                        rect: () => combineRects(elements.map(e => e.getBoundingClientRect())),
                         depth: Math.min(...elements.map(getDepth)),
-                        source: rsn,
+                        source: razorSourceName,
                         elements
                     });
                     break;
@@ -254,21 +273,21 @@ const createComponentsMap = async (): Promise<ComponentMap[]> => {
         }
     }
 
-    // console.log(`FOUND COMPONENT:`, componentsMap);
     return componentsMap;
 }
 
 const getLogicalNodePropKeys = () => {
     const commentWalker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_COMMENT, NULL);
     while (commentWalker.nextNode()) {
-        const commentNode = commentWalker.currentNode as Comment;
+        const commentNode = commentWalker.currentNode;
         if (commentNode.textContent !== "!") continue;
 
         const symbolProps = Object.getOwnPropertySymbols(commentNode);
         symbolProps.forEach(prop => {
-            const propValue = (commentNode as any)[prop];
-            if (!logicalNodeParentKey && typeof (propValue.nodeType) !== undefined) logicalNodeParentKey = prop;
-            if (!logicalNodeChildrenKey && isArray(propValue)) logicalNodeChildrenKey = prop;
+            const propValue = commentNode[prop];
+            if (!propValue) return;
+            if (isArray(propValue)) logicalNodeChildrenKey = logicalNodeChildrenKey || prop;
+            else if (typeof (propValue.nodeType) !== undefined) logicalNodeParentKey = logicalNodeParentKey || prop;
         });
         if (logicalNodeParentKey && logicalNodeChildrenKey) break;
     }
@@ -340,7 +359,7 @@ const createUIElements = (parent: ShadowRoot): UIElements => {
                 position: 'absolute', top: '4px', left: '4px', padding: '2px 6px',
                 fontFamily: 'sans-serif', fontSize: '12px', color: '#111',
                 backgroundColor: '#ffc107', boxShadow: '2px 2px 4px 0px rgb(0, 0, 0, 0.5)',
-                whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out'
+                whiteSpace: 'nowrap', display: none, transition: 'opacity 0.2s ease-out', pointerEvents: none
             }, NULL, [
                 createElement('img', { verticalAlign: 'middle', width: '16px' }, { src: CONTENT_ROOT + 'ASPWebApplication_16x.svg' }),
                 { sourceNameTipProjectName: createElement('span', { verticalAlign: 'middle', marginLeft: '4px' }) },
@@ -386,13 +405,17 @@ const updateUIeffects = (mode: Mode.Active | Mode.Locked): void => {
         borderColor: `rgba(0, 0, 0, ${overlayOpacity})`,
         boxShadow: `inset rgb(0, 0, 0, ${overlayOpacity}) 0px 0px 6px 4px`
     });
-    uiElements.sourceNameTip.style.opacity = sourcetipOpacity;
+    applyStyle(uiElements.sourceNameTip, {
+        opacity: sourcetipOpacity,
+        pointerEvents: mode === Mode.Locked ? 'auto' : 'none'
+    });
 }
 
 const setSourceNameTip = (projectName: string, itemName: string): void => {
     uiElements.sourceNameTipProjectName.textContent = projectName;
     uiElements.sourceNameTipItemName.textContent = itemName;
 }
+
 
 const onKeyDown = async (ev: KeyboardEvent): Promise<void> => {
     const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
@@ -494,22 +517,28 @@ const detectTargetAndDisplayIt = async (ev: MouseEvent): Promise<void> => {
 }
 
 const detectScope = async (ev: MouseEvent): Promise<DetectedScopeResult> => {
+
+    // Try to find scope information from the CSS scope attribute of the element under the mouse cursor.
+
+    const sourceNameTipVisibility = uiElements.sourceNameTip.style.visibility;
+    uiElements.sourceNameTip.style.visibility = 'hidden';
     uiElements.overlay.style.visibility = 'hidden';
     const hovered = doc.elementFromPoint(ev.clientX, ev.clientY);
     uiElements.overlay.style.visibility = 'visible';
+    uiElements.sourceNameTip.style.visibility = sourceNameTipVisibility;
 
     let scope: string | null = NULL;
     let scopeRect: Rect | null = NULL;
     let scopeSource: RazorSourceName | null = NULL;
-    let scopeElements: NodeWithLogicalNodeProps[] = [];
-    let topElement: NodeWithLogicalNodeProps | null = NULL;
+    let scopeElements: Node[] = [];
+    let topElement: Node | null = NULL;
     for (let element = hovered; element; element = element.parentElement) {
         if (!scope) {
             scope = await getScope(element);
-            if (scope) topElement = element as any as NodeWithLogicalNodeProps;
+            if (scope) topElement = element;
         }
         else {
-            if (scope === await getScope(element)) topElement = element as any as NodeWithLogicalNodeProps;
+            if (scope === await getScope(element)) topElement = element;
         }
     }
 
@@ -519,7 +548,11 @@ const detectScope = async (ev: MouseEvent): Promise<DetectedScopeResult> => {
         scopeSource = await getRazorSourceName(scope);
     }
 
-    const hoveredComponentMap = currentComponentsMap.filter(c => isPointerInRect(ev, c.rect)).sort((a, b) => b.depth - a.depth)[0];
+    // Also try to find scope information from the explicit markers of "FindRazorSourceFile" in the DOM tree.
+
+    const hoveredComponentMap = currentComponentsMap.filter(c => isPointerInRect(ev, c.rect())).sort((a, b) => b.depth - a.depth)[0];
+
+    // Merge the scope information from the CSS scope attribute and the explicit markers.
     if (hoveredComponentMap) {
         let shouldUseComponentMap = false;
         if (!scope) {
@@ -527,9 +560,8 @@ const detectScope = async (ev: MouseEvent): Promise<DetectedScopeResult> => {
         }
         else if (topElement && scopeSource) {
             if (scopeSource !== NotFound && scopeSource.itemName === hoveredComponentMap.source.itemName) {
-                scopeRect = combineRects([scopeRect || MaxRect, hoveredComponentMap.rect]);
-                console.log(`COMBINE RECTS:`, scopeRect);
-                scopeElements = [topElement, ...hoveredComponentMap.elements as any as NodeWithLogicalNodeProps[]];
+                scopeRect = combineRects([scopeRect || MaxRect, hoveredComponentMap.rect()]);
+                scopeElements = [topElement, ...hoveredComponentMap.elements];
             }
             else {
                 if (getDepth(topElement) < hoveredComponentMap.depth) {
@@ -540,8 +572,8 @@ const detectScope = async (ev: MouseEvent): Promise<DetectedScopeResult> => {
 
         if (shouldUseComponentMap) {
             scope = hoveredComponentMap.hash;
-            scopeElements = hoveredComponentMap.elements as any as NodeWithLogicalNodeProps[];
-            scopeRect = hoveredComponentMap.rect;
+            scopeElements = hoveredComponentMap.elements;
+            scopeRect = hoveredComponentMap.rect();
             scopeSource = hoveredComponentMap.source;
         }
     }
@@ -617,22 +649,24 @@ const displayScopeMask = (scopeRect: Rect | null, razorSourceName: RazorSourceNa
 
     const overlayRect = uiElements.overlay.getBoundingClientRect();
 
+    const bottomWidth = overlayRect.height - scopeRect.bottom;
+    const rightWidth = overlayRect.width - scopeRect.right;
     applyStyle(uiElements.overlay, {
         borderStyle: 'solid',
-        borderTopWidth: scopeRect.top + 'px',
-        borderLeftWidth: scopeRect.left + 'px',
-        borderBottomWidth: (overlayRect.height - scopeRect.bottom) + 'px',
-        borderRightWidth: (overlayRect.width - scopeRect.right) + 'px'
+        borderTopWidth: scopeRect.top > 0 ? scopeRect.top + 'px' : 0,
+        borderLeftWidth: scopeRect.left > 0 ? scopeRect.left + 'px' : 0,
+        borderBottomWidth: bottomWidth > 0 ? bottomWidth + 'px' : 0,
+        borderRightWidth: rightWidth > 0 ? rightWidth + 'px' : 0
     });
 
     setSourceNameTip(razorSourceName.projectName, razorSourceName.itemName);
     uiElements.sourceNameTip.style.display = 'block';
 }
 
-const getScopeRect = (element: NodeWithLogicalNodeProps): Rect => {
+const getScopeRect = (element: Node): Rect => {
 
-    const getLogicalNodes = (element: NodeWithLogicalNodeProps): [NodeWithLogicalNodeProps | null, NodeWithLogicalNodeProps[]] => {
-        const empty: [NodeWithLogicalNodeProps | null, NodeWithLogicalNodeProps[]] = [NULL, []];
+    const getLogicalNodes = (element: Node): [Node | null, Node[]] => {
+        const empty: [Node | null, Node[]] = [NULL, []];
         if (!logicalNodeParentKey || !logicalNodeChildrenKey) return empty;
         const logicalNodeParent = element[logicalNodeParentKey];
         const logicalNodeChildren = element[logicalNodeChildrenKey];
@@ -641,7 +675,7 @@ const getScopeRect = (element: NodeWithLogicalNodeProps): Rect => {
         return [logicalNodeParent, logicalNodeChildren];
     };
 
-    const getChildren = (element: NodeWithLogicalNodeProps): NodeWithLogicalNodeProps[] => {
+    const getChildren = (element: Node): Node[] => {
         const [logicalNodeParent, logicalNodeChildren] = getLogicalNodes(element);
         if (logicalNodeParent?.nodeType === COMMENT_NODE) {
             const [_, children] = getLogicalNodes(logicalNodeParent);
@@ -653,8 +687,8 @@ const getScopeRect = (element: NodeWithLogicalNodeProps): Rect => {
         return [element];
     };
 
-    const getRect = (children: NodeWithLogicalNodeProps[]): Rect => combineRects(children.map(e =>
-        (e.nodeType === ELEMENT_NODE) ? (e as any as HTMLElement).getBoundingClientRect() :
+    const getRect = (children: Node[]): Rect => combineRects(children.map(e =>
+        (e.nodeType === ELEMENT_NODE) ? (e as HTMLElement).getBoundingClientRect() :
             (e.nodeType === COMMENT_NODE) ? getRect(getLogicalNodes(e)[1]) : MaxRect));
 
     return getRect(getChildren(element));
