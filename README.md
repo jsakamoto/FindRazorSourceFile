@@ -188,6 +188,57 @@ If you are using Visual Studio 2019, you have to do an additional instruction be
 
 After doing the all steps of the instruction above and launch the project, the .razor source file will be opened in the Visual Studio when the HTML element is clicked in the "Inspection Mode" on a web browser! 👍
 
+## 5. Limitations
+
+FindRazorSourceFile identifies the original `.razor` file that generated a DOM element by relying on Blazor's "Isolated CSS" mechanism. Specifically, it traces back to the source file using the automatically injected CSS scope IDs (e.g., b-xxxxx) assigned to HTML elements during rendering.
+
+Due to this reliance on CSS scope IDs, there are several limitations:
+
+- **Components Without Direct HTML Elements:** If a `.razor` file contains only child components (and no direct HTML elements), then no CSS scope ID is injected for that file. As a result, FindRazorSourceFile cannot detect such components in the rendered DOM.
+- **Ambiguous boundaries in complex components:** If a component contains multiple root-level HTML elements, the tool may misidentify component boundaries or highlight unexpected regions in the DOM.
+
+These behaviors are inherent to the current implementation, which depends exclusively on CSS scope IDs to determine the source of rendered DOM elements.
+
+To overcome these limitations, you can use the explicit component detection mechanism described in the next section.
+
+## 6. Improved Component Detection with `FRSF_BEGIN_COMPONENT` / `FRSF_END_COMPONENT`
+
+To overcome the limitations described above, FindRazorSourceFile provides a mechanism for explicit component boundary marking using static methods: `FRSF_BEGIN_COMPONENT` and `FRSF_END_COMPONENT`. By manually adding these markers to your `.razor` files, you can significantly improve the accuracy of component detection, even for components without direct HTML elements or with multiple root-level elements.
+
+### How to Use
+
+1. **Import the static methods**  
+   In your project's `_Imports.razor`, add the following line:
+
+```razor
+@using static FindRazorSourceFile.FindRazorSourceFileMarker
+```
+
+2. **Add markers to your component**  
+   At the beginning and end of your `.razor` file, insert calls to those static methods:
+
+```razor
+@FRSF_BEGIN_COMPONENT() @* 👈 Add this line, and... *@
+
+@page "/"
+<h1>Hello, world!</h1>
+<p>Welcome to your new app.</p>
+
+@FRSF_END_COMPONENT() @* 👈 add this line. *@
+```
+
+This will cause FindRazorSourceFile to inject special comment markers into the rendered DOM, allowing it to accurately associate DOM regions with the correct `.razor` file.
+
+### Notes on Debug and Release Builds
+
+- **Debug builds:** 
+  When building in Debug configuration, the full path of the `.razor` file is embedded in the assembly and included in the marker comments. Be aware of potential security implications if you deploy Debug builds.
+
+- **Release builds:** 
+  In Release configuration, no `.razor` file paths are embedded, and the marker comments are not emitted. This ensures there is no impact on performance or assembly size in production.
+
+By using these explicit markers, you can resolve the detection limitations and achieve precise mapping between DOM elements and their source `.razor` files.
+
 ## License
 
 [Mozilla Public License Version 2.0](https://github.com/jsakamoto/FindRazorSourceFile/blob/master/LICENSE.txt)
