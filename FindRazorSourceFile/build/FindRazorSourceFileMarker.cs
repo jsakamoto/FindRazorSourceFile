@@ -1,23 +1,24 @@
 ﻿using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
-#if true
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
-#endif
 
 namespace FindRazorSourceFile;
 
-
+/// <summary>
+/// Provides methods to insert explicit markers at the beginning and end of a Razor component for the "FindRazorSourceFile" tool.
+/// </summary>
 internal static class FindRazorSourceFileMarker
 {
+#if ENABLE_FIND_RAZOR_SOURCE_FILE
     private static byte[] ComputeHash(string path)
     {
         using var sha256 = SHA256.Create();
         return sha256.ComputeHash(Encoding.UTF8.GetBytes(path));
     }
 
-    static string ToBase36(byte[] hash)
+    private static string ToBase36(byte[] hash)
     {
         var array = new char[10];
         var buff = new byte[10];
@@ -30,18 +31,31 @@ internal static class FindRazorSourceFileMarker
         }
         return new string(array);
     }
-#if true
+
+    /// <summary>
+    /// Inserts an explicit marker at the beginning of a Razor component for use by the "FindRazorSourceFile" tool.
+    /// </summary>
     public static MarkupString FRSF_BEGIN_COMPONENT([CallerFilePath] string sourcePath = "")
     {
         return new MarkupString($"<!-- begin:frsf-{ToBase36(ComputeHash(sourcePath))} -->");
     }
 
+    /// <summary>
+    /// Inserts an explicit marker at the end of a Razor component for use by the "FindRazorSourceFile" tool.
+    /// </summary>
     public static MarkupString FRSF_END_COMPONENT([CallerFilePath] string sourcePath = "")
     {
         return new MarkupString($"<!-- end:frsf-{ToBase36(ComputeHash(sourcePath))} -->");
     }
 #else
+    /// <summary>
+    /// Inserts an explicit marker at the beginning of a Razor component for use by the "FindRazorSourceFile" tool.
+    /// </summary>
     public static string? FRSF_BEGIN_COMPONENT() => null;
+
+    /// <summary>
+    /// Inserts an explicit marker at the end of a Razor component for use by the "FindRazorSourceFile" tool.
+    /// </summary>
     public static string? FRSF_END_COMPONENT() => null;
 #endif
 }

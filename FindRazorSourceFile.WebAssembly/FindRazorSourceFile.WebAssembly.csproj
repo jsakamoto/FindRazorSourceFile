@@ -36,6 +36,7 @@
     <Compile Remove="build\*" />
     <None Include="build\*" Pack="true" PackagePath="build/%(Filename)%(Extension)" />
     <None Include="..\FindRazorSourceFile\build\FindRazorSourceFile.targets" Visible="false" Pack="true" PackagePath="build/%(Filename)%(Extension)" />
+    <None Include="..\FindRazorSourceFile\build\FindRazorSourceFileMarker.cs" Visible="false" Pack="true" PackagePath="build/%(Filename)%(Extension)" />
     <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
     <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
   </ItemGroup>
