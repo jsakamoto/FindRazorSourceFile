@@ -550,7 +550,9 @@ const detectScope = async (ev: MouseEvent): Promise<DetectedScopeResult> => {
 
     // Also try to find scope information from the explicit markers of "FindRazorSourceFile" in the DOM tree.
 
-    const hoveredComponentMap = currentComponentsMap.filter(c => isPointerInRect(ev, c.rect())).sort((a, b) => b.depth - a.depth)[0];
+    const hoveredComponentMap = currentComponentsMap
+        .filter(c => isPointerInRect(ev, c.rect()))
+        .sort((a, b) => b.depth !== a.depth ? b.depth - a.depth : a.elements.length - b.elements.length)[0];
 
     // Merge the scope information from the CSS scope attribute and the explicit markers.
     if (hoveredComponentMap) {

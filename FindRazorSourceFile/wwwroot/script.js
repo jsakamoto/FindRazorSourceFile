@@ -375,7 +375,9 @@ const detectScope = async (ev) => {
         scopeRect = (currentScope === scope ? currentScopeRect : NULL) || getScopeRect(topElement);
         scopeSource = await getRazorSourceName(scope);
     }
-    const hoveredComponentMap = currentComponentsMap.filter(c => isPointerInRect(ev, c.rect())).sort((a, b) => b.depth - a.depth)[0];
+    const hoveredComponentMap = currentComponentsMap
+        .filter(c => isPointerInRect(ev, c.rect()))
+        .sort((a, b) => b.depth !== a.depth ? b.depth - a.depth : a.elements.length - b.elements.length)[0];
     if (hoveredComponentMap) {
         let shouldUseComponentMap = false;
         if (!scope) {
