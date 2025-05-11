@@ -1,5 +1,15 @@
 ﻿<Project>
 
+  <!-- 
+  INCLUDE THE "FindRazorSourceFileMarker" SOURCE CODE IN THE PROJECT WHEN THE "FindRazorSourceFile" FEATURE IS ENABLED.
+  -->
+  <PropertyGroup Condition="'$(EnableFindRazorSourceFile)' == 'true'">
+    <DefineConstants>$(DefineConstants);ENABLE_FIND_RAZOR_SOURCE_FILE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Visible="false" />
+  </ItemGroup>
+
   <PropertyGroup>
     <_RazorSourceMapFilesDir>$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
     <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
@@ -13,6 +23,57 @@
       <_VersionOfApplyCssScopesTask Condition=" '$(_VersionOfApplyCssScopesTask)' == '' ">2</_VersionOfApplyCssScopesTask>
     </PropertyGroup>
   </Target>
+
+  <UsingTask TaskName="_FRSF_ComputePathHash" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <!-- Input parameteres -->
+      <RazorComponents ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <!-- Output parameters -->
+      <RazorComponentsWithPathHash ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Numerics" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+
+static byte[] ComputePathHash(ITaskItem item) {
+    using var sha256 = SHA256.Create();
+    return sha256.ComputeHash(Encoding.UTF8.GetBytes(item.GetMetadata("FullPath")));
+}
+
+static string ToBase36(byte[] hash)
+{
+    var array = new char[10];
+    var buff = new byte[10];
+    Array.Copy(hash, buff, 10);
+    var dividend = BigInteger.Abs(new BigInteger(buff));
+    for (var i = 0; i < 10; i++)
+    {
+        dividend = BigInteger.DivRem(dividend, 36, out var remainder);
+        array[i] = "0123456789abcdefghijklmnopqrstuvwxyz"[(int)remainder];
+    }
+    return new string(array);
+}
+
+var razorComponentsWithPathHash = new List<ITaskItem>();
+foreach (var razorComponent in this.RazorComponents)
+{
+    var razorComponentWithPathHash = new TaskItem(razorComponent.ItemSpec);
+    razorComponentWithPathHash.SetMetadata("PathHash", "frsf-" + ToBase36(ComputePathHash(razorComponentWithPathHash)));
+    razorComponentsWithPathHash.Add(razorComponentWithPathHash);
+}
+this.RazorComponentsWithPathHash = razorComponentsWithPathHash.ToArray();
+
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
 
   <UsingTask TaskName="_FRSF_ComputeFingerprint" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
@@ -91,6 +152,9 @@ this.EndpointItems = endpointItems.ToArray();
     </Task>
   </UsingTask>
 
+  <!--
+  GENERATE THE RAZOR SOURCE MAP FILES, BASED ON THE CSS SCOPE IDS AND THE FULL PATH OF RAZOR COMPONENTS.
+  -->
   <Target Name="_GenerateRazorSourceMapFiles"
           BeforeTargets="AssignRazorComponentTargetPaths;AssignRazorGenerateTargetPaths"
           DependsOnTargets="ResolveScopedCssOutputs;_DefineFindRazorSourceFileProperties"
@@ -122,12 +186,34 @@ this.EndpointItems = endpointItems.ToArray();
       <RazorComponent Include="@(_Razor_with_Scope)" />
     </ItemGroup>
 
+    <!--
+    GENERATE THE RAZOR SOURCE MAP FILES BASED ON THE CSS SCOPE IDS. (THEY ARE .txt FILES START WITH "b-...")
+    -->
     <MakeDir Directories="$(_RazorSourceMapFilesDir)"/>
     <WriteLinesToFile WriteOnlyWhenDifferent="true" Overwrite="true"
                       File="$(_RazorSourceMapFilesDir)%(RazorComponent.CssScope).txt"
                       Lines="$(ProjectName)|%(RazorComponent.Identity)|%(RazorComponent.FullPath)"
                       Condition=" '%(RazorComponent.CssScope)' != '' "/>
 
+    <!--
+    GENERATE THE OTHER RAZOR SOURCE MAP FILES BASED ON THE FULL PATH OF RAZOR COMPONENTS. (THEY ARE .txt FILES STARTS WITH "frsf-...")
+    -->
+    <_FRSF_ComputePathHash RazorComponents="@(RazorComponent)">
+      <Output TaskParameter="RazorComponentsWithPathHash" ItemName="_FRSF_RazorComponentWithPathHash" />
+    </_FRSF_ComputePathHash>
+
+    <WriteLinesToFile WriteOnlyWhenDifferent="true" 
+                      Overwrite="true"
+                      File="$(_RazorSourceMapFilesDir)%(_FRSF_RazorComponentWithPathHash.PathHash).txt"
+                      Lines="$(ProjectName)|%(_FRSF_RazorComponentWithPathHash.Identity)|%(_FRSF_RazorComponentWithPathHash.FullPath)"/>
+    <ItemGroup>
+      <_FRSF_RazorComponentWithPathHash Remove="@(_FRSF_RazorComponentWithPathHash)" />
+    </ItemGroup>
+
+
+    <!--
+    INCLUDE ALL THE RAZOR SOURCE MAP FILES IN THE STATIC WEB ASSET AND ITS ENDPOINTS.
+    -->
     <ItemGroup>
       <_RazorSourceMapFiles Include="$(_RazorSourceMapFilesDir)*.txt" />
     </ItemGroup>

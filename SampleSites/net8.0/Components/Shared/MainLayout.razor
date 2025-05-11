@@ -1,4 +1,6 @@
-﻿@inherits LayoutComponentBase
+﻿@FRSF_BEGIN_COMPONENT()
+
+@inherits LayoutComponentBase
 
 <div class="sidebar">
     <NavMenu />
@@ -9,7 +11,7 @@
         <AboutBlazor />
     </div>
 
-    <div class="content px-4">
+    <div class="content px-4 body">
         @Body
     </div>
 
@@ -17,3 +19,5 @@
         <HotKeyInfo />
     </div>
 </div>
+
+@FRSF_END_COMPONENT()
