@@ -10,6 +10,11 @@ This package makes your Blazor apps display the source .razor file name that gen
 
 ![movie](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/movie-001-vscode.gif)
 
+For a quick visual overview, watch Jimmy Engström’s introduction video:
+
+[![](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/youtube-video-thumbnail.png)](https://youtu.be/noygi_czwGM)
+
+
 ## 1. Installation
 
 ### 1-a. For Blazor WebAssembly projects
