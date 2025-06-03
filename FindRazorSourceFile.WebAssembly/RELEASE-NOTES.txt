@@ -1,3 +1,6 @@
+v.1.0.0-preview.14.0
+- Fix: Fixed a build failure with the error message "File length for <path> is not defined" when using .NET SDK 9.0.300.
+
 v.1.0.0-preview.13.0
 - Feature: Added support for explicit component boundary detection using FRSF_BEGIN_COMPONENT and FRSF_END_COMPONENT static methods.
 
