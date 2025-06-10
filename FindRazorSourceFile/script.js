@@ -79,6 +79,12 @@ const createElement = (tagName, style, attrib, children) => {
     });
     return [element, exposes];
 };
+export function afterWebStarted() {
+    init();
+}
+export function afterStarted() {
+    init();
+}
 export const init = () => {
     if (_onceInit)
         return;

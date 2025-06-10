@@ -1,13 +1,5 @@
 ﻿<Project>
-  <Import Project="FindRazorSourceFile.targets" />
-
-  <!-- ENABLE ASSEMBLY LEVEL TRIMMING FOR BLAZOR WASM RELEASE PUBLISH -->
-  <Target Name="_ConfigureTrimmingForFindRazorSource" BeforeTargets="PrepareForILLink">
-    <ItemGroup>
-      <ManagedAssemblyToLink Condition="'%(Filename)' == 'FindRazorSourceFile.WebAssembly'">
-        <IsTrimmable>true</IsTrimmable>
-      </ManagedAssemblyToLink>
-    </ItemGroup>
-  </Target>
-
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Visible="false" />
+  </ItemGroup>
 </Project>

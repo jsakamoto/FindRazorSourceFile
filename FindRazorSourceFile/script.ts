@@ -189,6 +189,15 @@ const createElement = (tagName: string, style?: object | null, attrib?: object |
     return [element, exposes];
 }
 
+/** Bootstrap / Entry point */
+export function afterWebStarted() {
+    init();
+}
+
+export function afterStarted() {
+    init();
+}
+
 /** 
  * Enable the Razor Source File UI.
  */

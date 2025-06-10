@@ -213,7 +213,8 @@ this.EndpointItems = endpointItems.ToArray();
     <WriteLinesToFile WriteOnlyWhenDifferent="true" 
                       Overwrite="true"
                       File="$(_RazorSourceMapFilesDir)%(_FRSF_RazorComponentWithPathHash.PathHash).txt"
-                      Lines="$(ProjectName)|%(_FRSF_RazorComponentWithPathHash.Identity)|%(_FRSF_RazorComponentWithPathHash.FullPath)"/>
+                      Lines="$(ProjectName)|%(_FRSF_RazorComponentWithPathHash.Identity)|%(_FRSF_RazorComponentWithPathHash.FullPath)"
+                      Condition=" '%(_FRSF_RazorComponentWithPathHash.PathHash)' != '' " />
     <ItemGroup>
       <_FRSF_RazorComponentWithPathHash Remove="@(_FRSF_RazorComponentWithPathHash)" />
     </ItemGroup>
