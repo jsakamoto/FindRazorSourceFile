@@ -11,8 +11,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.16" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.16" PrivateAssets="all" />
-    <PackageReference Include="FindRazorSourceFile.WebAssembly" Version="1.0.0-preview.14.0" />
+    <PackageReference Include="FindRazorSourceFile.WebAssembly" Version="1.0.0-preview.15.0" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Components\SampleSite.Components.csproj" />
   </ItemGroup>

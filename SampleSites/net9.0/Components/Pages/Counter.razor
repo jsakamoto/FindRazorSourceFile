@@ -1,0 +1,18 @@
+﻿@FRSF_BEGIN_COMPONENT()
+
+@page "/counter"
+
+<TitleHeader Title="Counter" Description="@($"Current count: {currentCount}")" />
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}
+
+@FRSF_END_COMPONENT()

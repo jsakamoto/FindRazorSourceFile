@@ -1,0 +1,16 @@
+@FRSF_BEGIN_COMPONENT()
+
+<h1>@this.Title</h1>
+
+<p>@this.Description</p>
+
+@code
+{
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string? Description { get; set; }
+}
+
+@FRSF_END_COMPONENT()
