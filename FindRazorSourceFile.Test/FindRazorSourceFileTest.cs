@@ -1,104 +1,143 @@
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using FindRazorSourceFile.Test.Internals;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Toolbelt.Diagnostics;
 
 namespace FindRazorSourceFile.Test;
 
+[Parallelizable(ParallelScope.Children)]
 public class FindRazorSourceFileTest
 {
-    public static IEnumerable<string> HostingModels { get; } = [
-        "Client",
-        "Server"
-    ];
+    public static IEnumerable<object[]> TestCases { get; } =
+        from hostingModel in new[] { "Client", "Host(Client)", "Server" }
+        from targetFramework in new[] { "net8.0", "net9.0" }
+        select new object[] { targetFramework, hostingModel };
 
-    [Test, TestCaseSource(typeof(FindRazorSourceFileTest), nameof(HostingModels))]
-    public async Task DotNet8Build_Test(string hostingModel)
+
+    [TestCaseSource(typeof(FindRazorSourceFileTest), nameof(TestCases))]
+    public async Task DotNetBuild_Twice_Test(string targetFramework, string hostingModel)
     {
-        using var context = new BuildTestContext(hostingModel, "net8.0");
+        using var context = new BuildTestContext(targetFramework, hostingModel);
 
         // 1st, build both host project and component project.
         using var initialBuildProcess = XProcess.Start(
-            "dotnet", $"build -c:Debug -o:\"{context.OutputDir}\"", workingDirectory: context.HostProjectDir);
+            "dotnet", $"build -c Debug", workingDirectory: context.HostProjectDir);
         await initialBuildProcess.WaitForExitAsync();
-        initialBuildProcess.ExitCode.Is(0, message: initialBuildProcess.StdOutput + initialBuildProcess.StdError);
+        initialBuildProcess.ExitCode.Is(0, message: initialBuildProcess.Output);
 
         // Validate the 1st build result.
-        ValidateNet8BuildResult(context);
+        ValidateGeneratedRazorSourceMapFiles(context);
 
         // 2nd, build only host project. (reproduce incremental build forcibly.)
         using var incrementalBuildProcess = XProcess.Start(
-            "dotnet", $"build --no-dependencies -c:Debug -o:\"{context.OutputDir}\"", workingDirectory: context.HostProjectDir);
+            "dotnet", $"build --no-dependencies -c Debug", workingDirectory: context.HostProjectDir);
         await incrementalBuildProcess.WaitForExitAsync();
-        incrementalBuildProcess.ExitCode.Is(0, message: incrementalBuildProcess.StdOutput + incrementalBuildProcess.StdError);
+        incrementalBuildProcess.ExitCode.Is(0, message: incrementalBuildProcess.Output);
 
         // Validate the 2nd build result again, and nothing should have changed.
-        ValidateNet8BuildResult(context);
+        ValidateGeneratedRazorSourceMapFiles(context);
     }
 
-    private static void ValidateNet8BuildResult(BuildTestContext context)
+    private static void ValidateGeneratedRazorSourceMapFiles(BuildTestContext context)
     {
-        // [Validate 1] map files of the host project were generated properly.
-        Directory.Exists(context.MapFilesDirOfHost).IsTrue(message: $"{context.MapFilesDirOfHost} should be exist.");
-        Directory.GetFiles(context.MapFilesDirOfHost, "*.txt")
-            .OrderBy(path => path)
+        // Gather all razor source map files from the host, component, and secondary host intermediate directories.
+        var mapFilesDirs = new[] { context.MapFilesDirOfHost, context.MapFilesDirOfComponent, context.MapFilesDirOfSecondaryHost }.Where(dir => !string.IsNullOrEmpty(dir));
+        var allMapFiles =
+            mapFilesDirs.SelectMany(dir => Directory.GetFiles(dir, "*.txt"))
             .Select(path => new MapFile(Path.GetFileName(path), File.ReadAllText(path).TrimEnd()))
-            .Is(Expected.GetMapFilesOfHost(context.HostProjectDir)[context.HostingModel]);
+            .ToArray();
 
-        // [Validate 2] map files of the component project were generated properly.
-        Directory.Exists(context.MapFilesDirOfComponent).IsTrue(message: $"{context.MapFilesDirOfComponent} should be exist.");
-        Directory.GetFiles(context.MapFilesDirOfComponent, "*.txt")
-            .OrderBy(path => path)
-            .Select(path => new MapFile(Path.GetFileName(path), File.ReadAllText(path).TrimEnd()))
-            .Is(Expected.GetMapFilesOfComponent(context.ComponentProjectDir));
+        // Categorize map files by their prefixes.
+        var mapFileGroups = new[]{
+            allMapFiles.Where(m => m.FileName.StartsWith("b-")),
+            allMapFiles.Where(m => m.FileName.StartsWith("frsf-"))
+        };
 
-        // [Validate 3] exists static web assets metadata file.
-        // TODO: Temporary, this test does not work. It depends on the version of the .NET SDK.
-        // File.Exists(context.StaticWebAssetsJsonPath).IsTrue(message: $"{context.StaticWebAssetsJsonPath} should be exist.");
-        File.Exists(context.StaticWebAssetsRuntimeJsonPath).IsTrue(message: $"{context.StaticWebAssetsRuntimeJsonPath} should be exist.");
-        // var staticWebAssetsJson = JObject.Parse(File.ReadAllText(context.StaticWebAssetsJsonPath));
-        var staticWebAssetsRuntimeJson = JObject.Parse(File.ReadAllText(context.StaticWebAssetsRuntimeJsonPath));
+        // Construct expected map file contents based on the context.
+        var expectedMapFilesContentSet = Expected.GetMapFilesContents(context);
+        var expectedMapFilesContentLines = new[]{
+            expectedMapFilesContentSet[context.HostingModel],
+            expectedMapFilesContentSet["Components"],
+            string.IsNullOrEmpty(context.SecondaryHostModel) ? [] : expectedMapFilesContentSet[context.SecondaryHostModel],
+        }.SelectMany(lines => lines).ToArray();
 
-        // [Validate 4] static web assets metadata includes a mapping for host project.
-        // TODO: Temporary, this test does not work. It depends on the version of the .NET SDK.
-        //var mapFilesAssets = staticWebAssetsJson["Assets"]?
-        //    .Where(asset => asset["SourceId"]?.ToString() == "FindRazorSourceFile.RazorSourceMapFiles")
-        //    .ToArray();
-        //if (mapFilesAssets == null) throw new NullReferenceException();
-
-        var mapFilesRuntimes = staticWebAssetsRuntimeJson
-            ["Root"]?["Children"]?
-            ["_content"]?["Children"]?
-            ["FindRazorSourceFile"]?["Children"]?
-            ["RazorSourceMapFiles"]?["Children"];
-        if (mapFilesRuntimes == null) throw new NullReferenceException();
-
-        foreach (var mapFile in Expected.GetMapFilesOfComponent(context.ComponentProjectDir))
+        // Validate that each map file group contains the expected contents.
+        foreach (var mapFileGroup in mapFileGroups)
         {
-            var relativePath = $"_content/FindRazorSourceFile/RazorSourceMapFiles/{mapFile.FileName}";
-            var fullPath = Path.Combine(context.MapFilesDirOfComponent, mapFile.FileName);
+            foreach (var expectedMapFileContent in expectedMapFilesContentLines)
+            {
+                mapFileGroup.Any(m => m.Contents == expectedMapFileContent)
+                    .IsTrue(message: $"The map file content should be generated: {expectedMapFileContent}");
+            }
+        }
+    }
 
-            // TODO: Temporary, this test does not work. It depends on the version of the .NET SDK.
-            //var mapFileAsset = mapFilesAssets.First(a => a["RelativePath"]?.ToString() == relativePath);
-            //mapFileAsset["Identity"]?.ToString().Is(fullPath);
-            //mapFileAsset["SourceType"]?.ToString().Is("Project");
-            //mapFileAsset["ContentRoot"]?.ToString().Is(context.MapFilesDirOfComponent);
-            //mapFileAsset["BasePath"]?.ToString().Is("/");
-            //mapFileAsset["RelativePath"]?.ToString().Is(relativePath);
-            //mapFileAsset["AssetKind"]?.ToString().Is("All");
-            //mapFileAsset["AssetMode"]?.ToString().Is("All");
-            //mapFileAsset["AssetRole"]?.ToString().Is("Primary");
-            //mapFileAsset["RelatedAsset"]?.ToString().Is("");
-            //mapFileAsset["AssetTraitName"]?.ToString().Is("");
-            //mapFileAsset["AssetTraitValue"]?.ToString().Is("");
-            //mapFileAsset["CopyToOutputDirectory"]?.ToString().Is("");
-            //mapFileAsset["CopyToPublishDirectory"]?.ToString().Is("Never");
-            //mapFileAsset["OriginalItemSpec"]?.ToString().Is(fullPath);
+    [TestCaseSource(typeof(FindRazorSourceFileTest), nameof(TestCases))]
+    public async Task DotNetRun_Test(string targetFramework, string hostingModel)
+    {
+        // Given
+        using var context = new BuildTestContext(targetFramework, hostingModel);
+        var url = $"http://localhost:{NetworkTool.GetAvailableTcpPort()}";
 
-            var mapFilesRuntime = mapFilesRuntimes[mapFile.FileName].IsNotNull();
-            mapFilesRuntime["Children"]?.Type.Is(JTokenType.Null);
-            mapFilesRuntime["Asset"]?["SubPath"]?.ToString().Is(mapFile.FileName);
-            mapFilesRuntime["Patterns"]?.Type.Is(JTokenType.Null);
+        // When
+        using var dotNetRun = XProcess.Start(
+            "dotnet", $"run -c Debug --urls {url}", workingDirectory: context.HostProjectDir);
+        var appStarted = await dotNetRun.WaitForOutputAsync(output => output.Contains("Application started."), options => options.IdleTimeout = 10000);
+        appStarted.IsTrue(message: $"The app should start successfully. {dotNetRun.Output}");
+
+        // Then: Validate the app is running and serving the map files.
+        var mapFilesDirs = new[] { context.MapFilesDirOfHost, context.MapFilesDirOfComponent, context.MapFilesDirOfSecondaryHost }.Where(dir => !string.IsNullOrEmpty(dir));
+        var allMapFiles =
+            mapFilesDirs.SelectMany(dir => Directory.GetFiles(dir, "*.txt"))
+            .Select(path => new MapFile(Path.GetFileName(path), File.ReadAllText(path).TrimEnd()))
+            .ToArray();
+
+        using var httpClient = new HttpClient();
+        foreach (var mapFile in allMapFiles)
+        {
+            var response = await httpClient.GetAsync($"{url}/_content/FindRazorSourceFile/RazorSourceMapFiles/{mapFile.FileName}");
+            response.IsSuccessStatusCode.IsTrue(message: $"The map file {mapFile.FileName} should be served successfully. {response.StatusCode}");
+            var mapFileContent = await response.Content.ReadAsStringAsync();
+            mapFileContent.TrimEnd().Is(mapFile.Contents, message: $"The content of the map file {mapFile.FileName} should match.");
+        }
+    }
+
+    [TestCaseSource(typeof(FindRazorSourceFileTest), nameof(TestCases))]
+    public async Task DotNetPublish_Test(string targetFramework, string hostingModel)
+    {
+        // Given
+        using var context = new BuildTestContext(targetFramework, hostingModel);
+
+        // When
+        using var dotNetPublish = XProcess.Start(
+            "dotnet", $"publish -c Release", workingDirectory: context.HostProjectDir);
+        await dotNetPublish.WaitForExitAsync();
+        dotNetPublish.ExitCode.Is(0, message: dotNetPublish.Output);
+
+        var publishDir = Path.Combine(context.HostProjectDir, "bin", "Release", targetFramework, "publish", "wwwroot");
+
+        // Then 1: There is no content files for the FIndRazorSourceFile, such as JavaScript module or CSS.
+        var findRazorSourceFileContentDir = Path.Combine(publishDir, "_content", "FindRazorSourceFile");
+        Directory.Exists(findRazorSourceFileContentDir).IsFalse(message: $"The content directory {findRazorSourceFileContentDir} should not exist after publish.");
+
+        // Then 2: There is no configuration to load the FindRazorSourceFile module in the published app.
+        if (hostingModel == "Server")
+        {
+            var moduleJsonPath = Path.Combine(publishDir, "SampleSite.Server.modules.json");
+            var moduleJson = File.Exists(moduleJsonPath)
+                ? (Nullable<JsonElement>)JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(moduleJsonPath))
+                : null;
+            moduleJson.EnumerateTextArray().Any(path => Regex.IsMatch(path, @"^_content/FindRazorSourceFile/FindRazorSourceFile\.[a-zA-Z0-9]+\.lib\.module\.js$"))
+                .IsFalse(message: $"The module file for FindRazorSourceFile should not exist in {moduleJsonPath} after publish.");
+        }
+        else
+        {
+            var blazorBootJsonPath = Path.Combine(publishDir, "_framework", "blazor.boot.json");
+            var blazorBootJson = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(blazorBootJsonPath));
+            var libraryInitializers = blazorBootJson.GetObject("resources").GetObject("libraryInitializers");
+            libraryInitializers.EnumerateObject().Any(prop => Regex.IsMatch(prop.Name, @"^_content/FindRazorSourceFile/FindRazorSourceFile\.[a-zA-Z0-9]+\.lib\.module\.js$"))
+                .IsFalse(message: $"The library initializer for FindRazorSourceFile should not exist in {blazorBootJsonPath} after publish.");
         }
     }
 }

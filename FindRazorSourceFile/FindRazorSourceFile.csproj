@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
 
-    <Version>1.0.0-preview.14.0</Version>
+    <Version>1.0.0-preview.15.0</Version>
     <Description>This package makes your Blazor apps display the source .razor file name that generated the HTML element under the mouse cursor when entering the `Ctrl` + `Shift` + `F` hotkeys.</Description>
     <Authors>J.Sakamoto</Authors>
     <Owners>J.Sakamoto</Owners>
@@ -18,18 +18,20 @@
     <PackageOutputPath>..\_dist\</PackageOutputPath>
     <PackageIcon>nupkg-icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
 
     <!-- Set this to false because assemblies should not reference this assembly directly, (except for tests, of course). -->
     <IsProjectReferenceProvider>false</IsProjectReferenceProvider>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <DevelopmentDependency>true</DevelopmentDependency>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Remove="bundleconfig.json" />
-    <None Include="bundleconfig.json" />
     <SupportedPlatform Include="browser" />
+    <Content Update="tsconfig.json" Pack="false" />
+    <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
+    <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,17 +41,35 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- MINIFY SCRIPTS - FOR FAST UP-TO-DATE CHECK -->
+  <Target Name="MinifyScript_CollectUpToDateCheck" BeforeTargets="CollectUpToDateCheckInputDesignTime;CollectUpToDateCheckBuiltDesignTime">
+    <ItemGroup>
+      <UpToDateCheckInput Include="script.js" Set="MinifyScriptUpToDateCheck" />
+      <UpToDateCheckBuilt Include="wwwroot/FindRazorSourceFile.lib.module.js" Set="MinifyScriptUpToDateCheck" />
+    </ItemGroup>
+  </Target>
+
+  <!-- MINIFY SCRIPTS  -->
+  <Target Name="MinifyScript" BeforeTargets="BeforeBuild" Inputs="script.js" Outputs="wwwroot/FindRazorSourceFile.lib.module.js">
+    <Exec Command="npx esbuild@0.25.5 ./script.js --outfile=wwwroot/FindRazorSourceFile.lib.module.js --minify --log-level=silent" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
   <!-- Pack settings -->
   <PropertyGroup>
     <StaticWebAssetsDisableProjectBuildPropsFileGeneration>true</StaticWebAssetsDisableProjectBuildPropsFileGeneration>
+    <StaticWebAssetsDisableProjectBuildMultiTargetingPropsFileGeneration>true</StaticWebAssetsDisableProjectBuildMultiTargetingPropsFileGeneration>
+    <StaticWebAssetsDisableProjectBuildTransitivePropsFileGeneration>true</StaticWebAssetsDisableProjectBuildTransitivePropsFileGeneration>
   </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="build\*" />
     <Content Remove="build\*" />
     <None Remove="build\*" />
     <None Include="build\*" Pack="true" PackagePath="build/" />
-    <None Include="..\.assets\nupkg-icon.png" Visible="false" Pack="true" PackagePath="/" />
-    <None Include="..\README.md" Visible="false" Pack="true" PackagePath="/" />
+    <None Remove="buildMultiTargeting\*" />
+    <None Include="buildMultiTargeting\*" Pack="true" PackagePath="buildMultiTargeting/" />
+    <None Remove="buildTransitive\*" />
+    <None Include="buildTransitive\*" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
   <Target Name="PreparePackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec">

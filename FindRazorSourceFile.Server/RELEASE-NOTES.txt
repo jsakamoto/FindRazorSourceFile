@@ -1,3 +1,9 @@
+v.1.0.0-preview.15.0
+- Improve: Unified all platform-specific packages into a single FindRazorSourceFile package.
+  - This improvement allows you to enables centralized package reference using Directory.Build.props.
+- Improve: No need to modify Program.cs to enable functionality. Simply installing the package is now sufficient.
+- Obsolete: Marked FindRazorSourceFile.WebAssembly and FindRazorSourceFile.Server packages as obsolete with no implementation inside.
+
 v.1.0.0-preview.14.0
 - Fix: Fixed a build failure with the error message "File length for <path> is not defined" when using .NET SDK 9.0.300.
 
