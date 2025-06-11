@@ -7,9 +7,9 @@ internal static class FindRazorSourceFileExtensions
     /// <summary>
     /// [Obsolete]<br/>
     /// This method is no longer needed to use FindRazorSource. <br/>
-    /// For more details, see: https://github.com/jsakamoto/FindRazorSourceFile/blob/master/DEPRECATION.md
+    /// For more details, see: https://github.com/jsakamoto/FindRazorSourceFile/blob/master/MIGRATION.15.md
     /// </summary>
-    [System.Obsolete("This method is no longer needed to use FindRazorSource. For more details, see: https://github.com/jsakamoto/FindRazorSourceFile/blob/master/DEPRECATION.md")]
+    [System.Obsolete("This method is no longer needed to use FindRazorSource. For more details, see: https://github.com/jsakamoto/FindRazorSourceFile/blob/master/MIGRATION.15.md")]
     public static WebAssemblyHostBuilder UseFindRazorSourceFile(this WebAssemblyHostBuilder builder)
     {
         return builder;

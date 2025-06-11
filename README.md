@@ -4,7 +4,7 @@
 
 ## What's this?
 
-This package makes your Blazor apps display the source .razor file name that generated the HTML element under the mouse cursor when entering the `Ctrl` + `Shift` + `F` hotkeys.
+This package enables your Blazor apps to display the source `.razor` file name that generated the HTML element under the mouse cursor when you press the `Ctrl` + `Shift` + `F` hotkeys.
 
 ![movie](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/movie-001-vs2022.gif)
 
@@ -17,164 +17,97 @@ For a quick visual overview, watch Jimmy Engström’s introduction video:
 
 ## 1. Installation
 
-### 1-a. For Blazor WebAssembly projects
-
-1. Add **the `FindRazorSourceFile.WebAssembly` NuGet package** to your Blazor WebAssembly project.
-
-```shell
-> dotnet add package FindRazorSourceFile.WebAssembly
-```
-
-2. Add calling of **the `UseFindRazorSourceFile()` extension method** for `WebAssemblyHostBuilder` at the startup of your Blazor WebAssembly app.
-
-```csharp
-// This is a "Program.cs" file of a Blazor Wasm app.
-...
-using FindRazorSourceFile.WebAssembly; // 👈 Open this namespace, and...
-...
-var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.UseFindRazorSourceFile(); // 👈 Add this line.
-...
-```
-
-> [!NOTE]  
-> The `UseFindRazorSourceFile()` method will work only when the target configuration is not "Release". That means any resources from "FindRazorSourceFile" will not be loaded in the app after it is published with trimming. So, you don't need to worry about increasing the app size due to linking this library in the release environment. If you need to suppress the loading resources of this library in other configurations, please set the `EnableFindRazorSourceFile` property to `false` in the project file. For example, `<EnableFindRazorSourceFile>false</EnableFindRazorSourceFile>`.
-
-### 1-b. For Blazor Server projects
-
-1. Add **the `FindRazorSourceFile.Server` NuGet package** to your Blazor Server project.
-
-```shell
-> dotnet add package FindRazorSourceFile.Server
-```
-
-2. Add calling of **the `UseFindRazorSourceFile()` extension method** for `IApplicationBuilder` at the startup of your Blazor Server app.
-
-```csharp
-// This is a "Program.cs" file of a Blazor Server app.
-...
-using FindRazorSourceFile.Server; // 👈 Open this namespace, and...
-...
-var builder = WebApplication.CreateBuilder(args);
-...
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    ...
-    app.UseFindRazorSourceFile(); // 👈 Add this line.
-}
-...
-```
-
-### 1-c. For Blazor components library projects (Razor Class Library)
-
-If your solution contains a Razor Class Library (RCL) project and you want to enable "find razor source file" for its components, **add the `FindRazorSourceFile` NuGet package** to the RCL project as well.
+Add the **`FindRazorSourceFile` NuGet package** to your Blazor Application or Razor Class Library (RCL) projects.
 
 ```shell
 > dotnet add package FindRazorSourceFile
 ```
 
-This ensures that CSS scope IDs are generated for all `.razor` files in the RCL, which is required for the detection feature to work.
+The `FindRazorSourceFile` NuGet package ensures that CSS scope IDs are generated for all `.razor` files in your projects, which is required for the detection feature to work.
 
+If your Blazor app uses the .NET 8 or later "Blazor Web App" project template, you will find two projects in your solution: a server-side project and a client-side project. In this case, you need to install the `FindRazorSourceFile` NuGet package in both projects.
 
-### 1-d. For Blazor Web Application projects created with .NET 8 or later (new project template)
+That's all you need to do to install the `FindRazorSourceFile` feature in your Blazor app!
 
-If you created your Blazor app using the .NET 8 or later "Blazor Web App" project template, please follow these steps:
+> [!NOTE]  
+> The functionality of `FindRazorSourceFile` is disabled when the target configuration is "Release". This means any resources from `FindRazorSourceFile` won't be loaded in the app after it is published. So, you don't need to worry about increasing the app size in the release environment due to referencing this package. If you need to suppress loading resources from this library in other configurations, set the `EnableFindRazorSourceFile` property to `false` in the project file. For example: `<EnableFindRazorSourceFile>false</EnableFindRazorSourceFile>`.
 
-- **Server-side project**:  
-  Add the `FindRazorSourceFile.Server` NuGet package and configure `UseFindRazorSourceFile()` in your server project's `Program.cs` as described above.
-
-- **Client-side project** (if present):  
-  If your project uses Interactive Render Mode with "WebAssembly" or "Auto", you will also have a client project.  
-  In this case, add the `FindRazorSourceFile.WebAssembly` NuGet package and configure `UseFindRazorSourceFile()` in the client project's `Program.cs` as described above.
-
-- **Razor Class Library** (if present):  
-  If your solution includes a Razor Class Library, add the `FindRazorSourceFile` NuGet package to the RCL project as described above.
-
-> **Summary Table**
->
-> | Project Type                | Required Package(s)                  | Required Setup in Program.cs         |
-> |-----------------------------|--------------------------------------|--------------------------------------|
-> | Server (host) project       | FindRazorSourceFile.Server           | UseFindRazorSourceFile()             |
-> | Client (WASM/Auto) project  | FindRazorSourceFile.WebAssembly      | UseFindRazorSourceFile()             |
-> | Razor Class Library (RCL)   | FindRazorSourceFile                  | (no code, just add package)          |
-
+> [!NOTE]  
+> Since version `1.0.0-preview.15`, the `FindRazorSourceFile` package is unified for all Blazor platforms, including Blazor WebAssembly, Blazor Server, and Razor Class Libraries (RCL). You no longer need to choose a specific package based on your Blazor platform.
+> If you are migrating from previous versions, please refer to the [Migration Guide](https://github.com/jsakamoto/FindRazorSourceFile/blob/master/MIGRATION.15.md) for instructions on how to update your project.
 
 ## 2. Usage
 
-### 2-1. Entering the "Inspection Mode"
+### 2-1. Entering "Inspection Mode"
 
-After installing `FindReSource` in your Blazor project, the Blazor app running in a web browser will respond to **`Ctrl` + `Shift` + `F` keyboard shortcuts** entering to **"Inspection Mode"**.
+After installing `FindRazorSourceFile` in your Blazor project, the Blazor app running in a web browser will respond to the **`Ctrl` + `Shift` + `F` keyboard shortcut** and enter **"Inspection Mode"**.
 
-When the app entered "Inspection Mode," the entire browser screen will dim.
+When the app enters "Inspection Mode," the entire browser screen will dim.
 
-In this state, when you moved the mouse cursor, the HTML element under the mouse cursor will be highlighted, and **the tooltip that displayed the source .razor file name** generated that HTML element will appear.
+In this state, as you move the mouse cursor, the HTML element under the cursor will be highlighted, and a tooltip displaying the source `.razor` file name that generated that HTML element will appear.
 
-### 2-2. Entering the "Lock Mode"
+### 2-2. Entering "Lock Mode"
 
-When you click an HTML element during the "Inspection Mode", the application's state will enter **the "Lock Mode"**.
+When you click an HTML element during "Inspection Mode", the application will enter **"Lock Mode"**.
 
-During the "Lock Mode", hovering the mouse cursor over the other HTML elements will have no effects.
+In "Lock Mode", hovering the mouse cursor over other HTML elements will have no effect.
 
-The highlighting of the HTML element and showing the tooltip will be maintained.
+The highlighting and tooltip for the selected HTML element will remain visible.
 
-This mode will be helpful for you to selecting and copy to the clipboard the source .razor file name displayed on the tooltip.
+This mode is helpful for selecting and copying the source `.razor` file name displayed in the tooltip.
 
-### 2-3. Exit each mode
+### 2-3. Exiting Modes
 
-To escape from these modes, you can press **the `ESC` key**.
+To exit these modes, press the **`ESC` key**.
 
-And also, the mouse click during the "Lock Mode" will exit that mode and return to "Inspection Mode".
+Additionally, clicking the mouse during "Lock Mode" will exit that mode and return to "Inspection Mode".
 
 ## 3. Open in Visual Studio Code
 
-Once you enable the `"Open the .razor file of the clicked component in VSCode"` option from the `"Find Razor Source File"` settings button, which is placed in the bottom-right corner of the page,
+Once you enable the `"Open the .razor file of the clicked component in VSCode"` option from the `"Find Razor Source File"` settings button, located in the bottom-right corner of the page,
 
 ![fig.3](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/fig3.png)
 
-the .razor file of you clicked component will be opened in a Visual Studio Code editor.
+the `.razor` file of the component you clicked on will be opened in Visual Studio Code.
 
+## 4. Open in Visual Studio IDE - Visual Studio Extension for "FindRazorSourceFile"
 
-## 4. Open in Visual Studio IDE - the Visual Studio Extension for "FindRazorSourceFile"
-
-If you are using Visual Studio IDE on Windows OS, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension / VS2022 Extension"** from the URL below.
+If you are using Visual Studio IDE on Windows, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension / VS2022 Extension"** from the URLs below.
 
 - **for Visual Studio 2019** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix
 - **for Visual Studio 2022** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix-2022
 
-If you have installed the extension above in your Visual Studio IDE and configured everything required to enable the "BrowserLink" feature of Visual Studio, entering "Lock Mode" causes **opening the .razor file the source of clicked HTML element automatically in your Visual Studio!**
+If you have installed the extension in your Visual Studio IDE and configured everything required to enable the "BrowserLink" feature, entering "Lock Mode" will automatically open the `.razor` file that generated the clicked HTML element in Visual Studio!
 
-### 3-1. Requirements
+### 4-1. Requirements
 
 - Visual Studio 2019 or 2022
 
-### 3-2. Usage
+### 4-2. Usage
 
-To enable "Find Razor Source File - Browser Link Extension / VS2022 Extension", please follow the instruction below.
+To enable the "Find Razor Source File - Browser Link Extension / VS2022 Extension", please follow the instructions below.
 
-1. Of course, the target project must have installed the "FindRazorSourceFile" feature, and please confirm the "Inspection Mode" and "Lock Mode" works well on a web browser before.
+1. Ensure the target project has the "FindRazorSourceFile" feature installed, and confirm that "Inspection Mode" and "Lock Mode" work correctly in a web browser.
 
-2. Check on the "Enable Browser Link" dropdown menu in the toolbar of your Visual Studio.
+2. Enable "Browser Link" from the dropdown menu in the Visual Studio toolbar.
 
 ![fig.1](https://raw.githubusercontent.com/jsakamoto/FindRazorSourceFile/master/.assets/fig.1.png)
 
-If you are using Visual Studio 2019, you have to do an additional instruction below. 
+If you are using Visual Studio 2019, follow the additional steps below:
 
 <details>
-<summary>Additional instruction steps in VS2019</summary>
+<summary>Additional steps for VS2019</summary>
 
-3. Add **the `Microsoft.VisualStudio.Web.BrowserLink` NuGet package** to your Blazor Server or ASP.NET Core host project.
+3. Add the **`Microsoft.VisualStudio.Web.BrowserLink` NuGet package** to your Blazor Server or ASP.NET Core host project.
 
 ```shell
 > dotnet add package Microsoft.VisualStudio.Web.BrowserLink
 ```
 
-4. Add calling of **the `UseBrowserLink()` extension method** for `IApplicationBuilder` at the startup of your Blazor Server app or ASP.NET Core host app.
-
+4. Call the **`UseBrowserLink()` extension method** for `IApplicationBuilder` at the startup of your Blazor Server app or ASP.NET Core host app.
 
 ```csharp
-// This is a "Startup.cs" file of a Server app.
+// In "Startup.cs" of a Server app.
   ...
   public void Configure(IApplicationBuilder app, ...)
   {
@@ -187,11 +120,11 @@ If you are using Visual Studio 2019, you have to do an additional instruction be
     ...
 ```
 
-**IMPORTANT NOTICE:** Please place the calling `UseBrowserLink()` before the calling `UseFindRazorSourceFile()` if the project is a Blazor Server.
+**IMPORTANT NOTICE:** Place the call to `UseBrowserLink()` before calling `UseFindRazorSourceFile()` if the project is a Blazor Server app.
 
 </details>
 
-After doing the all steps of the instruction above and launch the project, the .razor source file will be opened in the Visual Studio when the HTML element is clicked in the "Inspection Mode" on a web browser! 👍
+After completing all the steps above and launching the project, the `.razor` source file will open in Visual Studio when you click an HTML element in "Inspection Mode" in your web browser! 👍
 
 ## 5. Limitations
 
@@ -199,7 +132,7 @@ FindRazorSourceFile identifies the original `.razor` file that generated a DOM e
 
 Due to this reliance on CSS scope IDs, there are several limitations:
 
-- **Components Without Direct HTML Elements:** If a `.razor` file contains only child components (and no direct HTML elements), then no CSS scope ID is injected for that file. As a result, FindRazorSourceFile cannot detect such components in the rendered DOM.
+- **Components Without Direct HTML Elements:** If a `.razor` file contains only child components (and no direct HTML elements), no CSS scope ID is injected for that file. As a result, FindRazorSourceFile cannot detect such components in the rendered DOM.
 - **Ambiguous boundaries in complex components:** If a component contains multiple root-level HTML elements, the tool may misidentify component boundaries or highlight unexpected regions in the DOM.
 
 These behaviors are inherent to the current implementation, which depends exclusively on CSS scope IDs to determine the source of rendered DOM elements.
@@ -220,7 +153,7 @@ To overcome the limitations described above, FindRazorSourceFile provides a mech
 ```
 
 2. **Add markers to your component**  
-   At the beginning and end of your `.razor` file, insert calls to those static methods:
+   At the beginning and end of your `.razor` file, insert calls to these static methods:
 
 ```razor
 @FRSF_BEGIN_COMPONENT() @* 👈 Add this line, and... *@
@@ -236,10 +169,10 @@ This will cause FindRazorSourceFile to inject special comment markers into the r
 
 ### Notes on Debug and Release Builds
 
-- **Debug builds:** 
+- **Debug builds:**  
   When building in Debug configuration, the full path of the `.razor` file is embedded in the assembly and included in the marker comments. Be aware of potential security implications if you deploy Debug builds.
 
-- **Release builds:** 
+- **Release builds:**  
   In Release configuration, no `.razor` file paths are embedded, and the marker comments are not emitted. This ensures there is no impact on performance or assembly size in production.
 
 By using these explicit markers, you can resolve the detection limitations and achieve precise mapping between DOM elements and their source `.razor` files.
