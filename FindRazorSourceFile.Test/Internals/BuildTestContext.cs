@@ -5,7 +5,7 @@ namespace FindRazorSourceFile.Test.Internals;
 
 public class BuildTestContext : IDisposable
 {
-    private readonly WorkDirectory _WorkFolder;
+    public WorkDirectory WorkFolder { get; }
 
     public string HostingModel { get; }
 
@@ -30,25 +30,25 @@ public class BuildTestContext : IDisposable
     {
         var solutionDir = FileIO.FindContainerDirToAncestor("FindRazorSourceFile.sln");
         var sampleSitesDir = Path.Combine(solutionDir, "SampleSites", framework);
-        this._WorkFolder = WorkDirectory.CreateCopyFrom(sampleSitesDir, args => args.Name is not "bin" and not "obj" and not ".vs");
+        this.WorkFolder = WorkDirectory.CreateCopyFrom(sampleSitesDir, args => args.Name is not "bin" and not "obj" and not ".vs");
 
         var m = Regex.Match(hostingModel, @"^(?<primary>[^\(]+)(\((?<secondary>[^\)]+)\))?$", RegexOptions.IgnoreCase);
         this.HostingModel = m.Groups["primary"].Value;
         this.SecondaryHostModel = m.Groups["secondary"].Value;
-        this.HostProjectDir = Path.Combine(this._WorkFolder, this.HostingModel);
+        this.HostProjectDir = Path.Combine(this.WorkFolder, this.HostingModel);
         this.SecondaryHostProjectDir = string.IsNullOrEmpty(this.SecondaryHostModel)
             ? ""
-            : Path.Combine(this._WorkFolder, this.SecondaryHostModel);
-        this.ComponentProjectDir = Path.Combine(this._WorkFolder, "Components");
+            : Path.Combine(this.WorkFolder, this.SecondaryHostModel);
+        this.ComponentProjectDir = Path.Combine(this.WorkFolder, "Components");
         this.MapFilesDirOfHost = Path.Combine(this.HostProjectDir, PathOf($"obj/Debug/{framework}/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
         this.MapFilesDirOfComponent = Path.Combine(this.ComponentProjectDir, PathOf($"obj/Debug/{framework}/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
         this.MapFilesDirOfSecondaryHost = string.IsNullOrEmpty(this.SecondaryHostModel)
             ? ""
-            : Path.Combine(this._WorkFolder, this.SecondaryHostModel, PathOf($"obj/Debug/{framework}/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
+            : Path.Combine(this.WorkFolder, this.SecondaryHostModel, PathOf($"obj/Debug/{framework}/RazorSourceMapFiles")) + Path.DirectorySeparatorChar;
     }
 
     public void Dispose()
     {
-        this._WorkFolder.Dispose();
+        this.WorkFolder.Dispose();
     }
 }
