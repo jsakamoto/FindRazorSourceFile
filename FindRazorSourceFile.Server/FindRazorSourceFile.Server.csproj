@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="AngleSharp" Version="0.14.0" />
     <ProjectReference Include="..\FindRazorSourceFile\FindRazorSourceFile.csproj" />
   </ItemGroup>
 
