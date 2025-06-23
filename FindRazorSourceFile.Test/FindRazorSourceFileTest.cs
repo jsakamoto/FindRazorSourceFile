@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using FindRazorSourceFile.Test.Internals;
 using NUnit.Framework;
+using Toolbelt;
 using Toolbelt.Diagnostics;
 
 namespace FindRazorSourceFile.Test;
@@ -139,5 +140,28 @@ public class FindRazorSourceFileTest
             libraryInitializers.EnumerateObject().Any(prop => Regex.IsMatch(prop.Name, @"^_content/FindRazorSourceFile/FindRazorSourceFile\.[a-zA-Z0-9]+\.lib\.module\.js$"))
                 .IsFalse(message: $"The library initializer for FindRazorSourceFile should not exist in {blazorBootJsonPath} after publish.");
         }
+    }
+
+    [TestCaseSource(typeof(FindRazorSourceFileTest), nameof(TestCases))]
+    public async Task DotNetBuild_with_CustomPath_Test(string targetFramework, string hostingModel)
+    {
+        // Given
+        using var context = new BuildTestContext(targetFramework, hostingModel);
+        using var workFolder = new WorkDirectory();
+        File.WriteAllText(Path.Combine(context.WorkFolder, "Directory.Build.props"), $"""
+            <Project>
+                <PropertyGroup>
+                    <BaseOutputPath>{workFolder}\$(MSBuildProjectName)\bin\</BaseOutputPath>
+                    <BaseIntermediateOutputPath>{workFolder}\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+                </PropertyGroup>
+            </Project>
+            """);
+
+        // When
+        using var buildProcess = XProcess.Start("dotnet", "build", workingDirectory: context.HostProjectDir);
+        await buildProcess.WaitForExitAsync();
+
+        // Then
+        buildProcess.ExitCode.Is(0, message: buildProcess.Output);
     }
 }

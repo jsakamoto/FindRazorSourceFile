@@ -1,3 +1,6 @@
+v.1.0.0-preview.16.0
+- Fix: An "Unable to create directory" error occurred when an absolute path was specified in the `BaseIntermediateOutputPath` MSBuild property (Issue #8).
+
 v.1.0.0-preview.15.0
 - Improve: Unified all platform-specific packages into a single FindRazorSourceFile package.
   - This improvement allows you to enables centralized package reference using Directory.Build.props.
