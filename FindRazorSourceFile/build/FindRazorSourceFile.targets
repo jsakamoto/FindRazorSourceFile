@@ -11,7 +11,8 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <_RazorSourceMapFilesDir>$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
+    <_RazorSourceMapFilesDir Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(IntermediateOutputPath), '^(([a-zA-Z]:)|/|\\)'))">$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
+    <_RazorSourceMapFilesDir Condition=" '$(_RazorSourceMapFilesDir)' == '' ">$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
     <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
     <_RazorSourceMapFilesStaticWebAssetsSourceType>Computed</_RazorSourceMapFilesStaticWebAssetsSourceType>
     <GenerateStaticWebAssetsPackTargetsDependsOn>_RemoveRazorSourceMapFilesFromPackage;$(GenerateStaticWebAssetsPackTargetsDependsOn);</GenerateStaticWebAssetsPackTargetsDependsOn>
