@@ -1,3 +1,6 @@
+v.1.0.0-preview.17.0
+- Fix: Resolved CA1850 code analysis warning by replacing 'ComputeHash' with the static 'HashData' method (Issue #9).
+
 v.1.0.0-preview.16.0
 - Fix: An "Unable to create directory" error occurred when an absolute path was specified in the `BaseIntermediateOutputPath` MSBuild property (Issue #8).
 
