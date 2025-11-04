@@ -14,8 +14,7 @@ internal static class FindRazorSourceFileMarker
 #if ENABLE_FIND_RAZOR_SOURCE_FILE
     private static byte[] ComputeHash(string path)
     {
-        using var sha256 = SHA256.Create();
-        return sha256.ComputeHash(Encoding.UTF8.GetBytes(path));
+        return SHA256.HashData(Encoding.UTF8.GetBytes(path));
     }
 
     private static string ToBase36(byte[] hash)
