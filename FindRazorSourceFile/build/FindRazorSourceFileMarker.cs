@@ -12,11 +12,6 @@ namespace FindRazorSourceFile;
 internal static class FindRazorSourceFileMarker
 {
 #if ENABLE_FIND_RAZOR_SOURCE_FILE
-    private static byte[] ComputeHash(string path)
-    {
-        return SHA256.HashData(Encoding.UTF8.GetBytes(path));
-    }
-
     private static string ToBase36(byte[] hash)
     {
         var array = new char[10];
@@ -36,7 +31,7 @@ internal static class FindRazorSourceFileMarker
     /// </summary>
     public static MarkupString FRSF_BEGIN_COMPONENT([CallerFilePath] string sourcePath = "")
     {
-        return new MarkupString($"<!-- begin:frsf-{ToBase36(ComputeHash(sourcePath))} -->");
+        return new MarkupString($"<!-- begin:frsf-{ToBase36(SHA256.HashData(Encoding.UTF8.GetBytes(sourcePath)))} -->");
     }
 
     /// <summary>
@@ -44,7 +39,7 @@ internal static class FindRazorSourceFileMarker
     /// </summary>
     public static MarkupString FRSF_END_COMPONENT([CallerFilePath] string sourcePath = "")
     {
-        return new MarkupString($"<!-- end:frsf-{ToBase36(ComputeHash(sourcePath))} -->");
+        return new MarkupString($"<!-- end:frsf-{ToBase36(SHA256.HashData(Encoding.UTF8.GetBytes(sourcePath)))} -->");
     }
 #else
     /// <summary>
