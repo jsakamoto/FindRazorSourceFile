@@ -1,0 +1,30 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/README/">
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/SampleSites/" />
+  <Folder Name="/SampleSites/net8.0/">
+    <Project Path="SampleSites/net8.0/Client/SampleSite.Client.csproj" />
+    <Project Path="SampleSites/net8.0/Components/SampleSite.Components.csproj" />
+    <Project Path="SampleSites/net8.0/Host/SampleSite.Host.csproj" />
+    <Project Path="SampleSites/net8.0/Server/SampleSite.Server.csproj" />
+  </Folder>
+  <Folder Name="/SampleSites/net9.0/">
+    <Project Path="SampleSites/net9.0/Client/SampleSite.Client.csproj" />
+    <Project Path="SampleSites/net9.0/Components/SampleSite.Components.csproj" />
+    <Project Path="SampleSites/net9.0/Host/SampleSite.Host.csproj" />
+    <Project Path="SampleSites/net9.0/Server/SampleSite.Server.csproj" />
+  </Folder>
+  <Folder Name="/UnitTest/">
+    <Project Path="FindRazorSourceFile.Test/FindRazorSourceFile.Test.csproj" />
+  </Folder>
+  <Project Path="FindRazorSourceFile.Server/FindRazorSourceFile.Server.csproj" />
+  <Project Path="FindRazorSourceFile.WebAssembly/FindRazorSourceFile.WebAssembly.csproj" />
+  <Project Path="FindRazorSourceFile/FindRazorSourceFile.csproj" />
+</Solution>

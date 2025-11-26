@@ -1,0 +1,12 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="VSExtension/Shared/FindRazorSourceFile.VSExtension.Shared.shproj" />
+  <Project Path="VSExtension/VS2019/FindRazorSourceFile.VSExtension2019.csproj" />
+  <Project Path="VSExtension/VS2022/FindRazorSourceFile.VSExtension2022.csproj">
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
+</Solution>
