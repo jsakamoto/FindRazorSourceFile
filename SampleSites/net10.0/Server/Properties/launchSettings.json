@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Server (net10)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "https://samplesite_server.dev.localhost:7194;http://samplesite_server.dev.localhost:5065",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

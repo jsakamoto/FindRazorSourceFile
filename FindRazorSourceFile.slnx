@@ -9,6 +9,12 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/SampleSites/" />
+  <Folder Name="/SampleSites/net10.0/">
+    <Project Path="SampleSites/net10.0/Client/SampleSite.Client.csproj" />
+    <Project Path="SampleSites/net10.0/Components/SampleSite.Components.csproj" />
+    <Project Path="SampleSites/net10.0/Host/SampleSite.Host.csproj" />
+    <Project Path="SampleSites/net10.0/Server/SampleSite.Server.csproj" />
+  </Folder>
   <Folder Name="/SampleSites/net8.0/">
     <Project Path="SampleSites/net8.0/Client/SampleSite.Client.csproj" />
     <Project Path="SampleSites/net8.0/Components/SampleSite.Components.csproj" />

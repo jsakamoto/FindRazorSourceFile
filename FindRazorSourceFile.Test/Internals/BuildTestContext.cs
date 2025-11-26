@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using Toolbelt;
 
 namespace FindRazorSourceFile.Test.Internals;
@@ -28,7 +28,7 @@ public class BuildTestContext : IDisposable
 
     public BuildTestContext(string framework, string hostingModel)
     {
-        var solutionDir = FileIO.FindContainerDirToAncestor("FindRazorSourceFile.sln");
+        var solutionDir = FileIO.FindContainerDirToAncestor("FindRazorSourceFile.slnx");
         var sampleSitesDir = Path.Combine(solutionDir, "SampleSites", framework);
         this.WorkFolder = WorkDirectory.CreateCopyFrom(sampleSitesDir, args => args.Name is not "bin" and not "obj" and not ".vs");
 

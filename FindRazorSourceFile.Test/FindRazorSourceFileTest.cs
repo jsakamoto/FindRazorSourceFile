@@ -12,7 +12,7 @@ public class FindRazorSourceFileTest
 {
     public static IEnumerable<object[]> TestCases { get; } =
         from hostingModel in new[] { "Client", "Host(Client)", "Server" }
-        from targetFramework in new[] { "net8.0", "net9.0" }
+        from targetFramework in new[] { "net8.0", "net9.0", "net10.0" }
         select new object[] { targetFramework, hostingModel };
 
 
@@ -84,7 +84,7 @@ public class FindRazorSourceFileTest
         // When
         using var dotNetRun = XProcess.Start(
             "dotnet", $"run -c Debug --urls {url}", workingDirectory: context.HostProjectDir);
-        var appStarted = await dotNetRun.WaitForOutputAsync(output => output.Contains("Application started."), options => options.IdleTimeout = 10000);
+        var appStarted = await dotNetRun.WaitForOutputAsync(output => output.Contains("Application started."), options => options.IdleTimeout = 15000);
         appStarted.IsTrue(message: $"The app should start successfully. {dotNetRun.Output}");
 
         // Then: Validate the app is running and serving the map files.
@@ -134,8 +134,7 @@ public class FindRazorSourceFileTest
         }
         else
         {
-            var blazorBootJsonPath = Path.Combine(publishDir, "_framework", "blazor.boot.json");
-            var blazorBootJson = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(blazorBootJsonPath));
+            var blazorBootJson = BlazorBootJson.Read(publishDir, out var blazorBootJsonPath);
             var libraryInitializers = blazorBootJson.GetObject("resources").GetObject("libraryInitializers");
             libraryInitializers.EnumerateObject().Any(prop => Regex.IsMatch(prop.Name, @"^_content/FindRazorSourceFile/FindRazorSourceFile\.[a-zA-Z0-9]+\.lib\.module\.js$"))
                 .IsFalse(message: $"The library initializer for FindRazorSourceFile should not exist in {blazorBootJsonPath} after publish.");

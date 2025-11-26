@@ -1,0 +1,68 @@
+@inject NavigationManager NavigationManager
+
+<a @attributes="AdditionalAttributes">
+    @ChildContent
+</a>
+
+@code
+{
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        this.UpdateCssClass();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        if (this.UpdateCssClass()) this.StateHasChanged();
+    }
+
+    private bool UpdateCssClass()
+    {
+        this.AdditionalAttributes ??= new();
+        if (this.AdditionalAttributes.TryGetValue("href", out var href) != true) return false;
+
+        var absoluteHref = this.NavigationManager.ToAbsoluteUri(href?.ToString()).AbsoluteUri;
+        var active = this.NavigationManager.Uri == absoluteHref;
+
+        var cssClass = this.AdditionalAttributes.TryGetValue("class", out var value) == true ? value?.ToString() ?? "" : "";
+        var cssClasses = cssClass.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+
+        var updated = false;
+        if (active)
+        {
+            if (!cssClass.Contains("active"))
+            {
+                cssClasses.Add("active");
+                updated = true;
+            }
+        }
+        else
+        {
+            if (cssClass.Contains("active"))
+            {
+                cssClasses.Remove("active");
+                updated = true;
+            }
+        }
+
+        if (updated)
+        {
+            cssClass = string.Join(' ', cssClasses);
+            this.AdditionalAttributes["class"] = cssClass;
+        }
+
+        return updated;
+    }
+}
