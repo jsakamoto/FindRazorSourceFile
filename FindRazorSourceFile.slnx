@@ -24,7 +24,5 @@
   <Folder Name="/UnitTest/">
     <Project Path="FindRazorSourceFile.Test/FindRazorSourceFile.Test.csproj" />
   </Folder>
-  <Project Path="FindRazorSourceFile.Server/FindRazorSourceFile.Server.csproj" />
-  <Project Path="FindRazorSourceFile.WebAssembly/FindRazorSourceFile.WebAssembly.csproj" />
   <Project Path="FindRazorSourceFile/FindRazorSourceFile.csproj" />
 </Solution>
