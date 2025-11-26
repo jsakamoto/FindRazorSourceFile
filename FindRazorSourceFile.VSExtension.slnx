@@ -5,8 +5,8 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="VSExtension/Shared/FindRazorSourceFile.VSExtension.Shared.shproj" />
-  <Project Path="VSExtension/VS2019/FindRazorSourceFile.VSExtension2019.csproj" />
-  <Project Path="VSExtension/VS2022/FindRazorSourceFile.VSExtension2022.csproj">
+  <Project Path="VSExtension/VS2019/FindRazorSourceFile.VSExtension2019.csproj" Id="148ba51e-fe66-4f60-a47a-d27f6e56bd7c" />
+  <Project Path="VSExtension/VS2022/FindRazorSourceFile.VSExtension2022.csproj" Id="20b5c602-a98d-41d4-ba19-c9ea8206ffd3">
     <Platform Solution="*|x86" Project="x86" />
   </Project>
 </Solution>
