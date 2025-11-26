@@ -83,7 +83,8 @@ public class FindRazorSourceFileTest
 
         // When
         using var dotNetRun = XProcess.Start(
-            "dotnet", $"run -c Debug --urls {url}", workingDirectory: context.HostProjectDir);
+            "dotnet", $"run -c Debug --urls {url}", workingDirectory: context.HostProjectDir,
+            options => options.EnvironmentVariables.Add("MSBUILDTERMINALLOGGER", "off"));
         var appStarted = await dotNetRun.WaitForOutputAsync(output => output.Contains("Application started."), options => options.IdleTimeout = 15000);
         appStarted.IsTrue(message: $"The app should start successfully. {dotNetRun.Output}");
 

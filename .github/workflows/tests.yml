@@ -20,4 +20,4 @@ jobs:
 
       # Invoke tests
       - name: Invoke tests
-        run: dotnet test --project ./FindRazorSourceFile.Test/FindRazorSourceFile.Test.csproj --output detailed
+        run: dotnet test --project ./FindRazorSourceFile.Test/FindRazorSourceFile.Test.csproj --output detailed --settings ./FindRazorSourceFile.Test/.settings/single-test-workers.runsettings
