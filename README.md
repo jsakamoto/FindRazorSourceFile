@@ -1,6 +1,6 @@
 # FindRazorSourceFile
 
-[![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.svg)](https://www.nuget.org/packages/FindRazorSourceFile/)
+[![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.svg)](https://www.nuget.org/packages/FindRazorSourceFile/) [![tests](https://github.com/jsakamoto/FindRazorSourceFile/actions/workflows/tests.yml/badge.svg)](https://github.com/jsakamoto/FindRazorSourceFile/actions/workflows/tests.yml)
 
 ## What's this?
 
