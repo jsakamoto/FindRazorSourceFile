@@ -1,6 +1,6 @@
-﻿# FindRazorSourceFile
+# FindRazorSourceFile
 
-[![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.WebAssembly.svg?label=for+Blazor+WebAssembly)](https://www.nuget.org/packages/FindRazorSourceFile.WebAssembly/) [![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.Server.svg?label=for+Blazor+Server)](https://www.nuget.org/packages/FindRazorSourceFile.Server/)
+[![NuGet Package](https://img.shields.io/nuget/v/FindRazorSourceFile.svg)](https://www.nuget.org/packages/FindRazorSourceFile/)
 
 ## What's this?
 
@@ -75,13 +75,13 @@ the `.razor` file of the component you clicked on will be opened in Visual Studi
 If you are using Visual Studio IDE on Windows, please check out the Visual Studio Extension **"Find Razor Source File - Browser Link Extension / VS2022 Extension"** from the URLs below.
 
 - **for Visual Studio 2019** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix
-- **for Visual Studio 2022** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix-2022
+- **for Visual Studio 2022, 2026** - https://marketplace.visualstudio.com/items?itemName=jsakamoto.findrazorsource-browserlink-vsix-2022
 
 If you have installed the extension in your Visual Studio IDE and configured everything required to enable the "BrowserLink" feature, entering "Lock Mode" will automatically open the `.razor` file that generated the clicked HTML element in Visual Studio!
 
 ### 4-1. Requirements
 
-- Visual Studio 2019 or 2022
+- Visual Studio 2019, 2022, or 2026
 
 ### 4-2. Usage
 
