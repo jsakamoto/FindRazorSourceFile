@@ -1,4 +1,4 @@
-﻿using FindRazorSourceFile.Test.Internals;
+using FindRazorSourceFile.Test.Internals;
 
 namespace FindRazorSourceFile.Test;
 
@@ -9,16 +9,16 @@ public static class Expected
         var clientProjectDir = context.HostingModel == "Client" ? context.HostProjectDir : context.SecondaryHostProjectDir;
         return new Dictionary<string, IEnumerable<string>>
         {
-            ["Client"] = [
+            ["Client"] = RegularizePath([
                 @$"SampleSite.Client|Pages\_Imports.razor|{clientProjectDir}\Pages\_Imports.razor",
                 @$"SampleSite.Client|Pages\Bar.razor|{clientProjectDir}\Pages\Bar.razor",
-            ],
-            ["Host"] = [],
-            ["Server"] = [
+            ]),
+            ["Host"] = RegularizePath([]),
+            ["Server"] = RegularizePath([
                 @$"SampleSite.Server|Pages\_Imports.razor|{context.HostProjectDir}\Pages\_Imports.razor",
                 @$"SampleSite.Server|Pages\Bar.razor|{context.HostProjectDir}\Pages\Bar.razor",
-            ],
-            ["Components"] = [
+            ]),
+            ["Components"] = RegularizePath([
                 @$"SampleSite.Components|Pages\Counter.razor|{context.ComponentProjectDir}\Pages\Counter.razor",
                 @$"SampleSite.Components|Pages\FetchData.razor|{context.ComponentProjectDir}\Pages\FetchData.razor",
                 @$"SampleSite.Components|Pages\Index.razor|{context.ComponentProjectDir}\Pages\Index.razor",
@@ -32,7 +32,17 @@ public static class Expected
                 @$"SampleSite.Components|Shared\TitleHeader.razor|{context.ComponentProjectDir}\Shared\TitleHeader.razor",
                 @$"SampleSite.Components|_Imports.razor|{context.ComponentProjectDir}\_Imports.razor",
                 @$"SampleSite.Components|App.razor|{context.ComponentProjectDir}\App.razor",
-            ],
+            ]),
         };
+    }
+
+    private static IEnumerable<string> RegularizePath(IEnumerable<string> pathList)
+    {
+        return pathList.Select(RegularizePath).ToArray();
+    }
+
+    private static string RegularizePath(string path)
+    {
+        return string.Join(Path.DirectorySeparatorChar, path.Split(['/', '\\']));
     }
 }
