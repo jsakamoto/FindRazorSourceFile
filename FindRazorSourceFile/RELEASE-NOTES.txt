@@ -1,3 +1,6 @@
+v.1.0.0
+- Stable release.
+
 v.1.0.0-preview.17.0
 - Fix: Resolved CA1850 code analysis warning by replacing 'ComputeHash' with the static 'HashData' method (Issue #9).
 
