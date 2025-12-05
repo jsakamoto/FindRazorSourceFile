@@ -1,3 +1,6 @@
+v.1.0.1
+- Fix: Resolved error CS0103 that occurred when implicit usings were disabled in a project (PR #11 contributed by @matneyx).
+
 v.1.0.0
 - Stable release.
 

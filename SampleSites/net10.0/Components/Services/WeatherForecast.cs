@@ -1,3 +1,5 @@
+using System;
+
 namespace SampleSite.Components.Services;
 
 public class WeatherForecast

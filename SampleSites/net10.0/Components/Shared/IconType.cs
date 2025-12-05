@@ -1,4 +1,6 @@
-﻿namespace SampleSite.Components.Shared;
+using System;
+
+namespace SampleSite.Components.Shared;
 
 public enum IconType
 {
