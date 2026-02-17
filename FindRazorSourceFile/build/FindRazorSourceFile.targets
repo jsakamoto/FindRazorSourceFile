@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
 
   <!-- 
   INCLUDE THE "FindRazorSourceFileMarker" SOURCE CODE IN THE PROJECT WHEN THE "FindRazorSourceFile" FEATURE IS ENABLED.
@@ -162,12 +162,71 @@ this.EndpointItems = endpointItems.ToArray();
   </UsingTask>
 
   <!--
+  GENERATE THE CONFIGURATION FILE FOR FIND RAZOR SOURCE FILE FEATURE.
+  -->
+  <Target
+    Name="_GenerateFindRazorSourceConfigFile"
+    BeforeTargets="GenerateStaticWebAssetsManifest"
+    Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
+    <PropertyGroup>
+      <_FRSF_ConfigPath>$(ProjectDir)$(IntermediateOutputPath)FindRazorSourceFileConfig.json</_FRSF_ConfigPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <_FRSF_ConfigLine Include="[" />
+      <_FRSF_ConfigLine Include="%20 {&quot;key&quot;: &quot;%(FindRazorSourceFileConfig.Identity)&quot;, &quot;value&quot;: &quot;%(FindRazorSourceFileConfig.Value)&quot;}," />
+      <_FRSF_ConfigLine Include="%20 {&quot;key&quot;: &quot;revision&quot;, &quot;value&quot;: &quot;1&quot;}" />
+      <_FRSF_ConfigLine Include="]" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_FRSF_ConfigPath)" Lines="@(_FRSF_ConfigLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+
+    <ItemGroup>
+      <_FRSF_ConfigFile Include="$(_FRSF_ConfigPath)" />
+    </ItemGroup>
+    <_FRSF_ComputeFingerprint Items="@(_FRSF_ConfigFile)">
+      <Output TaskParameter="FingerprintedItems" ItemName="_FRSF_FingerprintedConfigFile" />
+      <Output TaskParameter="EndpointItems" ItemName="_FRSF_ConfigFileEndpoints" />
+    </_FRSF_ComputeFingerprint>
+
+    <ItemGroup>
+      <!--
+      BEFORE ADDING THE CONFIG FILE TO STATIC WEB ASSET, REMOVE THE OLD ONE FIRST IN CASE THE CONFIG FILE NAME IS THE SAME.
+      -->
+      <_FRSF_StaticWebAssetToRemove Include="@(StaticWebAsset)" Condition=" %(StaticWebAsset.AssetTraitName) == 'FindRazorSourceFileConfig' " />
+      <StaticWebAsset Remove="@(_FRSF_StaticWebAssetToRemove)" />
+      <StaticWebAssetEndpoint Remove="@(_FRSF_StaticWebAssetToRemove->Replace('\', '/'))" />
+      <_FRSF_StaticWebAssetToRemove Remove="@(_FRSF_StaticWebAssetToRemove)" />
+
+      <!--
+      INCLUDE THE CONFIG FILE IN THE STATIC WEB ASSET WITH FINGERPRINT AND ITS ENDPOINT.
+      -->
+      <StaticWebAsset Include="@(_FRSF_FingerprintedConfigFile)">
+        <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
+        <SourceId>$(PackageId)</SourceId>
+        <ContentRoot>$(ProjectDir)$(IntermediateOutputPath)</ContentRoot>
+        <BasePath>$(StaticWebAssetBasePath)</BasePath>
+        <RelativePath>%(FileName)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+        <OriginalItemSpec>%(FullPath)</OriginalItemSpec>
+        <AssetKind>All</AssetKind>
+        <AssetMode>All</AssetMode>
+        <AssetRole>Primary</AssetRole>
+        <AssetTraitName>FindRazorSourceFileConfig</AssetTraitName>
+      </StaticWebAsset>
+
+      <StaticWebAssetEndpoint Include="@(_FRSF_ConfigFileEndpoints)" />
+
+      <_FRSF_FingerprintedConfigFile Remove="@(_FRSF_FingerprintedConfigFile)" />
+      <_FRSF_ConfigFileEndpoints Remove="@(_FRSF_ConfigFileEndpoints)" />
+    </ItemGroup>
+  </Target>
+
+  <!--
   GENERATE THE RAZOR SOURCE MAP FILES, BASED ON THE CSS SCOPE IDS AND THE FULL PATH OF RAZOR COMPONENTS.
   -->
   <Target Name="_GenerateRazorSourceMapFiles"
-          BeforeTargets="AssignRazorComponentTargetPaths;AssignRazorGenerateTargetPaths"
-          DependsOnTargets="ResolveScopedCssOutputs;_DefineFindRazorSourceFileProperties"
-          Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
+    BeforeTargets="AssignRazorComponentTargetPaths;AssignRazorGenerateTargetPaths"
+    DependsOnTargets="ResolveScopedCssOutputs;_DefineFindRazorSourceFileProperties"
+    Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
 
     <ItemGroup>
       <_Razor_without_Scope Include="%(RazorComponent.Identity)" Condition=" '%(RazorComponent.CssScope)' == '' " />
@@ -179,13 +238,13 @@ this.EndpointItems = endpointItems.ToArray();
     </ComputeCssScope>
 
     <ApplyCssScopes RazorComponents="@(_Razor_without_Scope)" ScopedCss="@(_Fictional_RazorCss_with_Scope)"
-                    Condition=" '$(_VersionOfApplyCssScopesTask)' == '1' ">
+      Condition=" '$(_VersionOfApplyCssScopesTask)' == '1' ">
       <Output TaskParameter="RazorComponentsWithScopes" ItemName="_Razor_with_Scope" />
       <!--<Output TaskParameter="RazorGenerateWithScopes" ItemName="_RazorGenerateWithScopes" />-->
     </ApplyCssScopes>
     <ApplyCssScopes RazorComponents="@(_Razor_without_Scope)" ScopedCss="@(_Fictional_RazorCss_with_Scope)"
-                    RazorGenerate=""
-                    Condition=" '$(_VersionOfApplyCssScopesTask)' != '1' ">
+      RazorGenerate=""
+      Condition=" '$(_VersionOfApplyCssScopesTask)' != '1' ">
       <Output TaskParameter="RazorComponentsWithScopes" ItemName="_Razor_with_Scope" />
       <!--<Output TaskParameter="RazorGenerateWithScopes" ItemName="_RazorGenerateWithScopes" />-->
     </ApplyCssScopes>
@@ -198,11 +257,11 @@ this.EndpointItems = endpointItems.ToArray();
     <!--
     GENERATE THE RAZOR SOURCE MAP FILES BASED ON THE CSS SCOPE IDS. (THEY ARE .txt FILES START WITH "b-...")
     -->
-    <MakeDir Directories="$(_RazorSourceMapFilesDir)"/>
+    <MakeDir Directories="$(_RazorSourceMapFilesDir)" />
     <WriteLinesToFile WriteOnlyWhenDifferent="true" Overwrite="true"
-                      File="$(_RazorSourceMapFilesDir)%(RazorComponent.CssScope).txt"
-                      Lines="$(ProjectName)|%(RazorComponent.Identity)|%(RazorComponent.FullPath)"
-                      Condition=" '%(RazorComponent.CssScope)' != '' "/>
+      File="$(_RazorSourceMapFilesDir)%(RazorComponent.CssScope).txt"
+      Lines="$(ProjectName)|%(RazorComponent.Identity)|%(RazorComponent.FullPath)"
+      Condition=" '%(RazorComponent.CssScope)' != '' " />
 
     <!--
     GENERATE THE OTHER RAZOR SOURCE MAP FILES BASED ON THE FULL PATH OF RAZOR COMPONENTS. (THEY ARE .txt FILES STARTS WITH "frsf-...")
@@ -211,11 +270,11 @@ this.EndpointItems = endpointItems.ToArray();
       <Output TaskParameter="RazorComponentsWithPathHash" ItemName="_FRSF_RazorComponentWithPathHash" />
     </_FRSF_ComputePathHash>
 
-    <WriteLinesToFile WriteOnlyWhenDifferent="true" 
-                      Overwrite="true"
-                      File="$(_RazorSourceMapFilesDir)%(_FRSF_RazorComponentWithPathHash.PathHash).txt"
-                      Lines="$(ProjectName)|%(_FRSF_RazorComponentWithPathHash.Identity)|%(_FRSF_RazorComponentWithPathHash.FullPath)"
-                      Condition=" '%(_FRSF_RazorComponentWithPathHash.PathHash)' != '' " />
+    <WriteLinesToFile WriteOnlyWhenDifferent="true"
+      Overwrite="true"
+      File="$(_RazorSourceMapFilesDir)%(_FRSF_RazorComponentWithPathHash.PathHash).txt"
+      Lines="$(ProjectName)|%(_FRSF_RazorComponentWithPathHash.Identity)|%(_FRSF_RazorComponentWithPathHash.FullPath)"
+      Condition=" '%(_FRSF_RazorComponentWithPathHash.PathHash)' != '' " />
     <ItemGroup>
       <_FRSF_RazorComponentWithPathHash Remove="@(_FRSF_RazorComponentWithPathHash)" />
     </ItemGroup>
@@ -256,12 +315,12 @@ this.EndpointItems = endpointItems.ToArray();
   </Target>
 
   <Target Name="_CleanRazorSourceMapFiles" AfterTargets="Clean" DependsOnTargets="_DefineFindRazorSourceFileProperties">
-    <RemoveDir Directories="$(_RazorSourceMapFilesDir)"/>
+    <RemoveDir Directories="$(_RazorSourceMapFilesDir)" />
   </Target>
 
   <Target Name="_RemoveRazorSourceMapFilesFromPackage">
     <ItemGroup>
-      <StaticWebAsset Remove="@(StaticWebAsset)" Condition=" %(AssetTraitName) == 'RazorSourceMapFiles' "/>
+      <StaticWebAsset Remove="@(StaticWebAsset)" Condition=" %(AssetTraitName) == 'RazorSourceMapFiles' " />
     </ItemGroup>
   </Target>
 
