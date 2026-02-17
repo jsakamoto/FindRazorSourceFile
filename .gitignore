@@ -1,6 +1,8 @@
+node_modules/
 bin/
 obj/
 .vs/
+.claude/
 _dist/*.nupkg
 *.user
 *.suo
