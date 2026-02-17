@@ -22,7 +22,22 @@ let currentScopeElements = [];
 let currentScopeRect = NULL;
 const razorSourceMap = {};
 let currentMode = 0;
+let configurations = [];
 const isArray = (obj) => Array.isArray(obj);
+const getConfigValue = (configs, key, defaultValue) => {
+    return configs.find(c => c.key === key)?.value ?? defaultValue;
+};
+const toBool = (value) => {
+    if (typeof value === 'boolean')
+        return value;
+    switch (String(value).toLowerCase()) {
+        case 'true': return true;
+        case 'false': return false;
+        default:
+            console.error(`Cannot convert to boolean: ${value}`);
+            return false;
+    }
+};
 const combineRects = (rects) => rects.reduce((pre, cur) => ({
     top: Math.min(pre.top, cur.top),
     left: Math.min(pre.left, cur.left),
@@ -79,13 +94,9 @@ const createElement = (tagName, style, attrib, children) => {
     });
     return [element, exposes];
 };
-export function afterWebStarted() {
-    init();
-}
-export function afterStarted() {
-    init();
-}
-export const init = () => {
+const afterWebStarted = () => init();
+const afterStarted = () => init();
+const init = async () => {
     if (_onceInit)
         return;
     _onceInit = true;
@@ -105,6 +116,13 @@ export const init = () => {
         scroll: window_onResize,
         storage: window_onStorage
     });
+    try {
+        const res = await fetch(`./FindRazorSourceFileConfig.json?${Date.now()}`);
+        configurations = res.ok ? await res.json() : [];
+    }
+    catch (e) {
+        console.error(e);
+    }
 };
 const createComponentsMap = async () => {
     const detectMarker = (node) => node.textContent?.trim().match(/^(begin|end):(frsf-[a-z0-9]{10})$/) || [];
@@ -265,9 +283,9 @@ const setSourceNameTip = (projectName, itemName) => {
     uiElements.sourceNameTipItemName.textContent = itemName;
 };
 const onKeyDown = async (ev) => {
-    const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
+    const pressedHotkey = isPressedHotkey(configurations, ev);
     const pressedEscape = (ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey);
-    if (currentMode === 0 && pressedCtrlShiftF) {
+    if (currentMode === 0 && pressedHotkey) {
         stopPropagation(ev);
         ev.preventDefault();
         currentComponentsMap = await createComponentsMap();
@@ -284,10 +302,10 @@ const onKeyDown = async (ev) => {
         currentScopeElements = [];
         currentScopeRect = NULL;
     }
-    else if ((currentMode === 1 || currentMode === 2) && (pressedEscape || pressedCtrlShiftF)) {
+    else if ((currentMode === 1 || currentMode === 2) && (pressedEscape || pressedHotkey)) {
         stopPropagation(ev);
         ev.preventDefault();
-        currentMode = pressedCtrlShiftF ? 0 : (currentMode === 2 ? 1 : 0);
+        currentMode = pressedHotkey ? 0 : (currentMode === 2 ? 1 : 0);
         updateUIeffects(1);
         uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
@@ -299,6 +317,14 @@ const onKeyDown = async (ev) => {
                 uiElements.overlay.style.display = none; }, 200);
         }
     }
+};
+const isPressedHotkey = (configs, ev) => {
+    const getHotleyConfigValue = (key, defaultValue) => getConfigValue(configs, 'hotkey:' + key, defaultValue);
+    return ev.code === getHotleyConfigValue('code', 'KeyF') &&
+        ev.ctrlKey === toBool(getHotleyConfigValue('ctrlKey', 'true')) &&
+        ev.shiftKey === toBool(getHotleyConfigValue('shiftKey', 'true')) &&
+        ev.altKey === toBool(getHotleyConfigValue('altKey', 'false')) &&
+        ev.metaKey === toBool(getHotleyConfigValue('metaKey', 'false'));
 };
 const overlay_onMouseMove = async (ev) => {
     if (currentMode !== 1)
@@ -526,3 +552,4 @@ const loadOptionsFromLocalStorage = () => {
     Object.assign(options, JSON.parse(optionString || '{}'));
     uiElements.settingsOpenInVSCode.checked = options.openInVSCode;
 };
+export { afterStarted, afterWebStarted, init, isPressedHotkey, getConfigValue, toBool };

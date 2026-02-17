@@ -1,4 +1,4 @@
-﻿interface UIElements {
+interface UIElements {
     overlay: HTMLElement;
     sourceNameTip: HTMLElement;
     sourceNameTipProjectName: HTMLElement;
@@ -34,6 +34,11 @@ interface Rect {
     left: number;
     bottom: number;
     right: number;
+}
+
+export interface FindRazorSourceFileConfig {
+    key: string;
+    value: string;
 }
 
 interface FindRazorSourceFileClientOptions {
@@ -115,9 +120,26 @@ const razorSourceMap: { [key: string]: RazorSourceName | undefined } = {};
 
 let currentMode: Mode = Mode.Inactive;
 
+let configurations: FindRazorSourceFileConfig[] = [];
+
 // Utility functions
 
 const isArray = (obj: unknown): obj is any[] => Array.isArray(obj);
+
+const getConfigValue = (configs: FindRazorSourceFileConfig[], key: string, defaultValue: string): string => {
+    return configs.find(c => c.key === key)?.value ?? defaultValue;
+}
+
+const toBool = (value: any): boolean => {
+    if (typeof value === 'boolean') return value;
+    switch (String(value).toLowerCase()) {
+        case 'true': return true;
+        case 'false': return false;
+        default:
+            console.error(`Cannot convert to boolean: ${value}`);
+            return false;
+    }
+};
 
 /** Combine multiple rectangles into one. */
 const combineRects = (rects: Rect[]): Rect => rects.reduce((pre, cur) => ({
@@ -190,18 +212,14 @@ const createElement = (tagName: string, style?: object | null, attrib?: object |
 }
 
 /** Bootstrap / Entry point */
-export function afterWebStarted() {
-    init();
-}
+const afterWebStarted = () => init();
 
-export function afterStarted() {
-    init();
-}
+const afterStarted = () => init();
 
 /** 
  * Enable the Razor Source File UI.
  */
-export const init = () => {
+const init = async () => {
 
     if (_onceInit) return;
     _onceInit = true;
@@ -226,6 +244,12 @@ export const init = () => {
         scroll: window_onResize,
         storage: window_onStorage
     });
+
+    // Load configurations.
+    try {
+        const res = await fetch(`./FindRazorSourceFileConfig.json?${Date.now()}`);
+        configurations = res.ok ? await res.json() : [];
+    } catch (e) { console.error(e); }
 }
 
 /**
@@ -425,12 +449,11 @@ const setSourceNameTip = (projectName: string, itemName: string): void => {
     uiElements.sourceNameTipItemName.textContent = itemName;
 }
 
-
 const onKeyDown = async (ev: KeyboardEvent): Promise<void> => {
-    const pressedCtrlShiftF = (ev.code === 'KeyF' && ev.ctrlKey && ev.shiftKey && !ev.metaKey && !ev.altKey);
+    const pressedHotkey = isPressedHotkey(configurations, ev);
     const pressedEscape = (ev.code === 'Escape' && !ev.ctrlKey && !ev.shiftKey && !ev.metaKey && !ev.altKey);
 
-    if (currentMode === Mode.Inactive && pressedCtrlShiftF) {
+    if (currentMode === Mode.Inactive && pressedHotkey) {
         stopPropagation(ev);
         ev.preventDefault();
         currentComponentsMap = await createComponentsMap();
@@ -447,11 +470,11 @@ const onKeyDown = async (ev: KeyboardEvent): Promise<void> => {
         currentScopeElements = [];
         currentScopeRect = NULL;
     }
-    else if ((currentMode === Mode.Active || currentMode === Mode.Locked) && (pressedEscape || pressedCtrlShiftF)) {
+    else if ((currentMode === Mode.Active || currentMode === Mode.Locked) && (pressedEscape || pressedHotkey)) {
         stopPropagation(ev);
         ev.preventDefault();
 
-        currentMode = pressedCtrlShiftF ? Mode.Inactive : (currentMode === Mode.Locked ? Mode.Active : Mode.Inactive);
+        currentMode = pressedHotkey ? Mode.Inactive : (currentMode === Mode.Locked ? Mode.Active : Mode.Inactive);
         updateUIeffects(Mode.Active);
         uiElements.sourceNameTip.style.display = none;
         uiElements.overlay.style.borderWidth = '50vh 50vw';
@@ -463,6 +486,15 @@ const onKeyDown = async (ev: KeyboardEvent): Promise<void> => {
             setTimeout(() => { if (currentMode === Mode.Inactive) uiElements.overlay.style.display = none; }, 200);
         }
     }
+}
+
+const isPressedHotkey = (configs: FindRazorSourceFileConfig[], ev: KeyboardEvent): boolean => {
+    const getHotleyConfigValue = (key: string, defaultValue: string): string => getConfigValue(configs, 'hotkey:' + key, defaultValue);
+    return ev.code === getHotleyConfigValue('code', 'KeyF') &&
+        ev.ctrlKey === toBool(getHotleyConfigValue('ctrlKey', 'true')) &&
+        ev.shiftKey === toBool(getHotleyConfigValue('shiftKey', 'true')) &&
+        ev.altKey === toBool(getHotleyConfigValue('altKey', 'false')) &&
+        ev.metaKey === toBool(getHotleyConfigValue('metaKey', 'false'));
 }
 
 const overlay_onMouseMove = async (ev: MouseEvent): Promise<void> => {
@@ -725,4 +757,13 @@ const loadOptionsFromLocalStorage = (): void => {
     const optionString = localStorage.getItem(FindRazorSourceFileClientOptionsKey);
     Object.assign(options, JSON.parse(optionString || '{}'));
     uiElements.settingsOpenInVSCode.checked = options.openInVSCode;
+}
+
+export {
+    afterStarted,
+    afterWebStarted,
+    init,
+    isPressedHotkey,
+    getConfigValue,
+    toBool
 }
