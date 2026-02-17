@@ -177,6 +177,39 @@ This will cause FindRazorSourceFile to inject special comment markers into the r
 
 By using these explicit markers, you can resolve the detection limitations and achieve precise mapping between DOM elements and their source `.razor` files.
 
+## 7. Configuration
+
+You can customize the behavior of FindRazorSourceFile by specifying `FindRazorSourceFileConfig` items in your Blazor application project file. Each configuration entry is represented as a `key` and `value` pair.
+
+```xml
+<ItemGroup>
+  <FindRazorSourceFileConfig Include="key1" Value="value1" />
+  <FindRazorSourceFileConfig Include="key2" Value="value2" />
+</ItemGroup>
+```
+
+### 7-1. Hotkey Configuration
+
+By default, FindRazorSourceFile uses `Ctrl` + `Shift` + `F` to enter "Inspection Mode". You can change this hotkey using the following configuration keys.
+
+Configuration Key   | Description                                          | Default Value
+------------------- | ---------------------------------------------------- | ---
+`hotkey:code`       | The code property of the JavaScript keydown event    | "KeyF"
+`hotkey:ctrlKey`    | The ctrlKey property of the JavaScript keydown event | true
+`hotkey:shiftKey`   | The shiftKey property of the JavaScript keydown event| true
+`hotkey:altKey`     | The altKey property of the JavaScript keydown event  | false
+`hotkey:metaKey`    | The metaKey property of the JavaScript keydown event | false
+
+For example, to change the hotkey to `Alt` + `Shift` + `G`, add the following to your project file:
+
+```xml
+<ItemGroup>
+  <FindRazorSourceFileConfig Include="hotkey:code" Value="KeyG" />
+  <FindRazorSourceFileConfig Include="hotkey:ctrlKey" Value="false" />
+  <FindRazorSourceFileConfig Include="hotkey:altKey" Value="true" />
+</ItemGroup>
+```
+
 ## License
 
 [Mozilla Public License Version 2.0](https://github.com/jsakamoto/FindRazorSourceFile/blob/master/LICENSE.txt)
