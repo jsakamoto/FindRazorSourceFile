@@ -1,0 +1,29 @@
+name: client-tests
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the code
+      - uses: actions/checkout@v6
+
+      # Install Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./FindRazorSourceFile.Test
+
+      # Invoke tests
+      - name: Invoke tests
+        run: npm test
+        working-directory: ./FindRazorSourceFile.Test
