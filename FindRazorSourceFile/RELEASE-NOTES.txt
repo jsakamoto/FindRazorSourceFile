@@ -1,3 +1,6 @@
+v.1.1.1
+- Fix: Resolved a runtime error that occurred on Linux when targeting .NET 9.
+
 v.1.1.0
 - Feature: Added support for customizing the hotkey combination to enter "Inspection Mode" via project-level configuration.
 - Improve: Introduced a source generator to inject the FindRazorSourceFileMarker class instead of distributing a raw .cs file in the package.
