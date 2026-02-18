@@ -78,8 +78,8 @@ public class FindRazorSourceFileTest
     public async Task DotNetRun_Test(string targetFramework, string hostingModel)
     {
         // Given
-        using var context = new BuildTestContext(targetFramework, hostingModel);
         var url = $"http://localhost:{NetworkTool.GetAvailableTcpPort()}";
+        using var context = new BuildTestContext(targetFramework, hostingModel);
 
         // When
         using var dotNetRun = XProcess.Start(
@@ -98,11 +98,13 @@ public class FindRazorSourceFileTest
         using var httpClient = new HttpClient();
         foreach (var mapFile in allMapFiles)
         {
-            var response = await httpClient.GetAsync($"{url}/_content/FindRazorSourceFile/RazorSourceMapFiles/{mapFile.FileName}");
-            response.IsSuccessStatusCode.IsTrue(message: $"The map file {mapFile.FileName} should be served successfully. {response.StatusCode}");
-            var mapFileContent = await response.Content.ReadAsStringAsync();
+            var mapFileContent = await httpClient.GetStringAsync($"{url}/_content/FindRazorSourceFile/RazorSourceMapFiles/{mapFile.FileName}");
             mapFileContent.TrimEnd().Is(mapFile.Contents, message: $"The content of the map file {mapFile.FileName} should match.");
         }
+
+        // Then: Validate the app is serving the configuration json.
+        var configJson = await httpClient.GetStringAsync($"{url}/FindRazorSourceFileConfig.json");
+        configJson.NormalizeLineEndings().Is(Expected.GetConfigJson(hostingModel));
     }
 
     [TestCaseSource(typeof(FindRazorSourceFileTest), nameof(TestCases))]
@@ -143,9 +145,10 @@ public class FindRazorSourceFileTest
     }
 
     [TestCaseSource(typeof(FindRazorSourceFileTest), nameof(TestCases))]
-    public async Task DotNetBuild_with_CustomPath_Test(string targetFramework, string hostingModel)
+    public async Task DotNetRun_with_CustomPath_Test(string targetFramework, string hostingModel)
     {
         // Given
+        var url = $"http://localhost:{NetworkTool.GetAvailableTcpPort()}";
         using var context = new BuildTestContext(targetFramework, hostingModel);
         using var workFolder = new WorkDirectory();
         File.WriteAllText(Path.Combine(context.WorkFolder, "Directory.Build.props"), $"""
@@ -157,11 +160,32 @@ public class FindRazorSourceFileTest
             </Project>
             """);
 
-        // When
-        using var buildProcess = XProcess.Start("dotnet", "build", workingDirectory: context.HostProjectDir);
-        await buildProcess.WaitForExitAsync();
+        using var dotNetRun = XProcess.Start(
+            "dotnet", $"run -c Debug --urls {url}", workingDirectory: context.HostProjectDir,
+            options => options.EnvironmentVariables.Add("MSBUILDTERMINALLOGGER", "off"));
+        var appStarted = await dotNetRun.WaitForOutputAsync(output => output.Contains("Application started."), options => options.IdleTimeout = 15000);
+        appStarted.IsTrue(message: $"The app should start successfully. {dotNetRun.Output}");
 
-        // Then
-        buildProcess.ExitCode.Is(0, message: buildProcess.Output);
+        // Then: Validate the app is running and serving the map files.
+        var mapFilesDirs = new[] {
+            $"{workFolder}/SampleSite.Components/obj/Debug/{targetFramework}/RazorSourceMapFiles/",
+            $"{workFolder}/SampleSite.{context.HostingModel}/obj/Debug/{targetFramework}/RazorSourceMapFiles/",
+            $"{workFolder}/SampleSite.{context.SecondaryHostModel}/obj/Debug/{targetFramework}/RazorSourceMapFiles/",
+        }.Where(dir => Directory.Exists(dir));
+        var allMapFiles =
+            mapFilesDirs.SelectMany(dir => Directory.GetFiles(dir, "*.txt"))
+            .Select(path => new MapFile(Path.GetFileName(path), File.ReadAllText(path).TrimEnd()))
+            .ToArray();
+
+        using var httpClient = new HttpClient();
+        foreach (var mapFile in allMapFiles)
+        {
+            var mapFileContent = await httpClient.GetStringAsync($"{url}/_content/FindRazorSourceFile/RazorSourceMapFiles/{mapFile.FileName}");
+            mapFileContent.TrimEnd().Is(mapFile.Contents, message: $"The content of the map file {mapFile.FileName} should match.");
+        }
+
+        // Then: Validate the app is serving the configuration json.
+        var configJson = await httpClient.GetStringAsync($"{url}/FindRazorSourceFileConfig.json");
+        configJson.NormalizeLineEndings().Is(Expected.GetConfigJson(hostingModel));
     }
 }

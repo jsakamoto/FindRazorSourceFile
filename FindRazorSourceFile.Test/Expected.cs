@@ -4,6 +4,9 @@ namespace FindRazorSourceFile.Test;
 
 public static class Expected
 {
+    /// <summary>
+    /// Retrieves the expected contents of map files for each project type in the test context.
+    /// </summary>
     public static IReadOnlyDictionary<string, IEnumerable<string>> GetMapFilesContents(BuildTestContext context)
     {
         var clientProjectDir = context.HostingModel == "Client" ? context.HostProjectDir : context.SecondaryHostProjectDir;
@@ -44,5 +47,36 @@ public static class Expected
     private static string RegularizePath(string path)
     {
         return string.Join(Path.DirectorySeparatorChar, path.Split(['/', '\\']));
+    }
+
+    /// <summary>
+    /// Retrieves the expected contents of the configuration JSON for each project type in the test context.
+    /// </summary>
+    public static string GetConfigJson(string hostingModel)
+    {
+        return hostingModel switch
+        {
+            "Client" => """
+                [
+                  {"key": "hotkey:code", "value": "F1"},
+                  {"key": "hotkey:ctrlKey", "value": "false"},
+                  {"key": "hotkey:shiftKey", "value": "false"},
+                  {"key": "revision", "value": "1"}
+                ]            
+                """.NormalizeLineEndings(),
+            "Host(Client)" => """
+                [
+                  {"key": "", "value": ""},
+                  {"key": "revision", "value": "1"}
+                ]            
+                """.NormalizeLineEndings(),
+            "Server" => """
+                [
+                  {"key": "", "value": ""},
+                  {"key": "revision", "value": "1"}
+                ]            
+                """.NormalizeLineEndings(),
+            _ => throw new ArgumentException($"Unexpected hosting model: {hostingModel}")
+        };
     }
 }
