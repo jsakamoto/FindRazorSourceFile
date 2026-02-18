@@ -194,6 +194,7 @@ this.EndpointItems = endpointItems.ToArray();
       <_FRSF_StaticWebAssetToRemove Include="@(StaticWebAsset)" Condition=" %(StaticWebAsset.AssetTraitName) == 'FindRazorSourceFileConfig' " />
       <StaticWebAsset Remove="@(_FRSF_StaticWebAssetToRemove)" />
       <StaticWebAssetEndpoint Remove="@(_FRSF_StaticWebAssetToRemove->Replace('\', '/'))" />
+      <StaticWebAssetEndpoint Remove="@(_FRSF_StaticWebAssetToRemove->TrimStart('/'))" />
       <_FRSF_StaticWebAssetToRemove Remove="@(_FRSF_StaticWebAssetToRemove)" />
 
       <!--
