@@ -31,4 +31,5 @@
     <Project Path="FindRazorSourceFile.Test/FindRazorSourceFile.Test.csproj" />
   </Folder>
   <Project Path="FindRazorSourceFile/FindRazorSourceFile.csproj" />
+  <Project Path="FindRazorSourceFile.Generator/FindRazorSourceFile.Generator.csproj" />
 </Solution>

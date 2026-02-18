@@ -1,14 +1,13 @@
 <Project>
 
-  <!-- 
-  INCLUDE THE "FindRazorSourceFileMarker" SOURCE CODE IN THE PROJECT WHEN THE "FindRazorSourceFile" FEATURE IS ENABLED.
+  <!--
+  DEFINE THE "ENABLE_FIND_RAZOR_SOURCE_FILE" CONSTANT WHEN THE FEATURE IS ENABLED.
+  The source generator (FindRazorSourceFile.Generator) injects FindRazorSourceFileMarker.g.cs,
+  which uses this constant via #if ENABLE_FIND_RAZOR_SOURCE_FILE.
   -->
   <PropertyGroup Condition="'$(EnableFindRazorSourceFile)' == 'true'">
     <DefineConstants>$(DefineConstants);ENABLE_FIND_RAZOR_SOURCE_FILE</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Visible="false" />
-  </ItemGroup>
 
   <PropertyGroup>
     <_FRSF_IntermediateDir Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(IntermediateOutputPath), '^(([a-zA-Z]:)|/|\\)'))">$(IntermediateOutputPath)</_FRSF_IntermediateDir>

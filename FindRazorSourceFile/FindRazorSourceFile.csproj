@@ -72,6 +72,25 @@
     <None Include="buildTransitive\*" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
+  <!-- Source generator project reference (build dependency only; generator is packaged separately) -->
+  <ItemGroup>
+    <ProjectReference
+      Include="..\FindRazorSourceFile.Generator\FindRazorSourceFile.Generator.csproj"
+      ReferenceOutputAssembly="false"
+      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
+  <!-- Pack the source generator assembly into analyzers/dotnet/cs in the NuGet package.
+       Use TargetFramework == '' to match only the outer (cross-targeting) build context,
+       which is the context where NuGet pack actually collects files. -->
+  <ItemGroup Condition="'$(TargetFramework)' == ''">
+    <None
+      Include="$(MSBuildThisFileDirectory)..\FindRazorSourceFile.Generator\bin\$(Configuration)\netstandard2.0\FindRazorSourceFile.Generator.dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+      Visible="false" />
+  </ItemGroup>
+
   <Target Name="PreparePackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec">
     <ReadLinesFromFile File="RELEASE-NOTES.txt">
       <Output TaskParameter="Lines" ItemName="ReleaseNoteLines" />
