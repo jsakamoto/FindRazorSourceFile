@@ -8,15 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Client\SampleSite.Client.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="FindRazorSourceFile" Version="1.0.1">
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.3" />
+    <PackageReference Include="FindRazorSourceFile" Version="1.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <ProjectReference Include="..\Client\SampleSite.Client.csproj" />
   </ItemGroup>
 
 </Project>

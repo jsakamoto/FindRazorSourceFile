@@ -1,4 +1,3 @@
-using FindRazorSourceFile.Server;
 using SampleSite.Components.Services;
 using SampleSite.Server.Data;
 
@@ -15,7 +14,6 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseFindRazorSourceFile();
 }
 else
 {

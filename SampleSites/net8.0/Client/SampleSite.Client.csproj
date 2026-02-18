@@ -5,13 +5,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
-    <!--<BlazorEnableCompression>false</BlazorEnableCompression>-->
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.22" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.22" PrivateAssets="all" />
-    <PackageReference Include="FindRazorSourceFile.WebAssembly" Version="1.0.0-preview.17.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.24" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.24" PrivateAssets="all" />
+    <PackageReference Include="FindRazorSourceFile" Version="1.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FindRazorSourceFileConfig Include="hotkey:code" Value="F1" />
+    <FindRazorSourceFileConfig Include="hotkey:ctrlKey" Value="false" />
+    <FindRazorSourceFileConfig Include="hotkey:shiftKey" Value="false" />
   </ItemGroup>
 
   <ItemGroup>

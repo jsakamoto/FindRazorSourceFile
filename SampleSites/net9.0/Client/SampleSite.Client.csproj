@@ -8,12 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.11" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.11" PrivateAssets="all" />
-    <PackageReference Include="FindRazorSourceFile" Version="1.0.1">
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.13" PrivateAssets="all" />
+    <PackageReference Include="FindRazorSourceFile" Version="1.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FindRazorSourceFileConfig Include="hotkey:code" Value="F1" />
+    <FindRazorSourceFileConfig Include="hotkey:ctrlKey" Value="false" />
+    <FindRazorSourceFileConfig Include="hotkey:shiftKey" Value="false" />
   </ItemGroup>
 
   <ItemGroup>

@@ -13,11 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FindRazorSourceFile" Version="1.0.1">
+    <PackageReference Include="FindRazorSourceFile" Version="1.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
