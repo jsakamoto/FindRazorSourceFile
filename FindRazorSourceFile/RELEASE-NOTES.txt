@@ -1,5 +1,6 @@
 v.1.1.0
 - Feature: Added support for customizing the hotkey combination to enter "Inspection Mode" via project-level configuration.
+- Improve: Introduced a source generator to inject the FindRazorSourceFileMarker class instead of distributing a raw .cs file in the package.
 
 v.1.0.1
 - Fix: Resolved error CS0103 that occurred when implicit usings were disabled in a project (PR #11 contributed by @matneyx).
