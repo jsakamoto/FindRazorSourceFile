@@ -11,8 +11,9 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <_RazorSourceMapFilesDir Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(IntermediateOutputPath), '^(([a-zA-Z]:)|/|\\)'))">$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
-    <_RazorSourceMapFilesDir Condition=" '$(_RazorSourceMapFilesDir)' == '' ">$(ProjectDir)$(IntermediateOutputPath)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
+    <_FRSF_IntermediateDir Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(IntermediateOutputPath), '^(([a-zA-Z]:)|/|\\)'))">$(IntermediateOutputPath)</_FRSF_IntermediateDir>
+    <_FRSF_IntermediateDir Condition=" '$(_FRSF_IntermediateDir)' == '' ">$(ProjectDir)$(IntermediateOutputPath)</_FRSF_IntermediateDir>
+    <_RazorSourceMapFilesDir Condition=" '$(_RazorSourceMapFilesDir)' == '' ">$(_FRSF_IntermediateDir)RazorSourceMapFiles\</_RazorSourceMapFilesDir>
     <_IsThisRazorClassLib Condition=" '$(UsingMicrosoftNETSdkWeb)' != 'true' AND '$(UsingMicrosoftNETSdkBlazorWebAssembly)' != 'true' ">true</_IsThisRazorClassLib>
     <_RazorSourceMapFilesStaticWebAssetsSourceType>Computed</_RazorSourceMapFilesStaticWebAssetsSourceType>
     <GenerateStaticWebAssetsPackTargetsDependsOn>_RemoveRazorSourceMapFilesFromPackage;$(GenerateStaticWebAssetsPackTargetsDependsOn);</GenerateStaticWebAssetsPackTargetsDependsOn>
@@ -169,7 +170,7 @@ this.EndpointItems = endpointItems.ToArray();
     BeforeTargets="GenerateStaticWebAssetsManifest"
     Condition=" '$(EnableFindRazorSourceFile)' == 'true' ">
     <PropertyGroup>
-      <_FRSF_ConfigPath>$(ProjectDir)$(IntermediateOutputPath)FindRazorSourceFileConfig.json</_FRSF_ConfigPath>
+      <_FRSF_ConfigPath Condition=" '$(_FRSF_ConfigPath)' == '' ">$(_FRSF_IntermediateDir)FindRazorSourceFileConfig.json</_FRSF_ConfigPath>
     </PropertyGroup>
     <ItemGroup>
       <_FRSF_ConfigLine Include="[" />
@@ -202,7 +203,7 @@ this.EndpointItems = endpointItems.ToArray();
       <StaticWebAsset Include="@(_FRSF_FingerprintedConfigFile)">
         <SourceType>$(_RazorSourceMapFilesStaticWebAssetsSourceType)</SourceType>
         <SourceId>$(PackageId)</SourceId>
-        <ContentRoot>$(ProjectDir)$(IntermediateOutputPath)</ContentRoot>
+        <ContentRoot>%(RelativeDir)</ContentRoot>
         <BasePath>$(StaticWebAssetBasePath)</BasePath>
         <RelativePath>%(FileName)%(Extension)</RelativePath>
         <CopyToPublishDirectory>Never</CopyToPublishDirectory>
